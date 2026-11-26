@@ -1,8 +1,87 @@
 // Lumen för Windows, macOS och Linux.
 // Gränssnittet ligger i en vy som täcker hela fönstret; varje flik är en egen
 // webbvy som läggs exakt över gränssnittets innehållsyta.
-const { app, BaseWindow, WebContentsView, ipcMain, shell, nativeTheme, Menu } = require('electron');
+const { app, BaseWindow, WebContentsView, ipcMain, shell, nativeTheme, Menu, session } = require('electron');
 const path = require('path');
+const fs = require('fs');
+
+/* ---- Annonsblockering ---- */
+let adblock = true;
+let domains = new Set();
+const blockedCount = new Map(); // webContentsId -> antal
+const wcToTab = new Map();
+const LIST_URL = 'https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts';
+const parseHosts = (text) => {
+  const out = new Set();
+  for (const raw of text.split('\n')) {
+    const line = raw.split('#')[0].trim();
+    if (!line) continue;
+    const p = line.split(/\s+/);
+    if (p.length < 2 || (p[0] !== '0.0.0.0' && p[0] !== '127.0.0.1')) continue;
+    const h = p[1].toLowerCase();
+    if (h === 'localhost' || h === '0.0.0.0' || !h.includes('.')) continue;
+    out.add(h);
+  }
+  return out;
+};
+async function loadBlocklist() {
+  try {
+    fs.readFileSync(path.join(__dirname, 'ui', 'blocklist.txt'), 'utf8').split('\n')
+      .map((l) => l.trim().toLowerCase()).filter((l) => l && !l.startsWith('#')).forEach((d) => domains.add(d));
+  } catch (e) {}
+  const file = path.join(app.getPath('userData'), 'hosts.txt');
+  let fresh = false;
+  try {
+    const st = fs.statSync(file);
+    parseHosts(fs.readFileSync(file, 'utf8')).forEach((d) => domains.add(d));
+    fresh = Date.now() - st.mtimeMs < 7 * 864e5;
+  } catch (e) {}
+  if (fresh) return;
+  try {
+    const r = await fetch(LIST_URL);
+    if (!r.ok) return;
+    const text = await r.text();
+    const set = parseHosts(text);
+    if (set.size > 1000) { fs.writeFileSync(file, text); set.forEach((d) => domains.add(d)); }
+  } catch (e) {}
+}
+function isBlocked(host) {
+  if (!adblock || !host) return false;
+  let h = host.toLowerCase();
+  for (;;) {
+    if (domains.has(h)) return true;
+    const i = h.indexOf('.');
+    if (i < 0) return false;
+    h = h.slice(i + 1);
+    if (!h.includes('.')) return false;
+  }
+}
+const guarded = new WeakSet();
+function guard(ses) {
+  if (guarded.has(ses)) return;
+  guarded.add(ses);
+  ses.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (d, cb) => {
+    if (d.resourceType === 'mainFrame' || !d.webContentsId || !wcToTab.has(d.webContentsId)) return cb({});
+    let host = '';
+    try { host = new URL(d.url).hostname; } catch (e) {}
+    if (!isBlocked(host)) return cb({});
+    blockedCount.set(d.webContentsId, (blockedCount.get(d.webContentsId) || 0) + 1);
+    scheduleEmit(d.webContentsId);
+    cb({ cancel: true });
+  });
+}
+const emitters = new Map();
+const pendingEmit = new Set();
+function scheduleEmit(wcId) {
+  if (pendingEmit.has(wcId)) return;
+  pendingEmit.add(wcId);
+  setTimeout(() => { pendingEmit.delete(wcId); const f = emitters.get(wcId); if (f) f(); }, 400);
+}
+
+/* ---- Privata flikar: en minnessession som kastas när sista privata fliken stängs ---- */
+let privGen = 1;
+const privTabs = new Set();
+const privPartition = () => 'lumen-private-' + privGen;
 
 let win = null;
 let ui = null;
@@ -28,7 +107,7 @@ function createWindow() {
     trafficLightPosition: { x: 16, y: 18 }
   });
   ui = new WebContentsView({
-    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, sandbox: true }
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, sandbox: true, additionalArguments: ['--lumen-version=' + app.getVersion()] }
   });
   ui.setBackgroundColor('#00000000');
   win.contentView.addChildView(ui);
@@ -71,9 +150,13 @@ function shortcut(e, input) {
   }
 }
 
-function tab(id) {
+function tab(id, priv) {
   if (tabs.has(id)) return tabs.get(id);
-  const v = new WebContentsView({ webPreferences: { contextIsolation: true, sandbox: true } });
+  const webPreferences = { contextIsolation: true, sandbox: true };
+  if (priv) { webPreferences.partition = privPartition(); privTabs.add(id); }
+  const v = new WebContentsView({ webPreferences });
+  guard(v.webContents.session);
+  wcToTab.set(v.webContents.id, id);
   v.setBackgroundColor('#ffffff');
   v.setVisible(false);
   const wc = v.webContents;
@@ -85,10 +168,13 @@ function tab(id) {
       title: wc.getTitle(),
       back: wc.navigationHistory.canGoBack(),
       fwd: wc.navigationHistory.canGoForward(),
-      progress: wc.isLoading() ? 60 : 100
+      progress: wc.isLoading() ? 60 : 100,
+      blocked: blockedCount.get(wc.id) || 0
     };
     run(`window.lumenEvent&&lumenEvent(${JSON.stringify(d)})`);
   };
+  emitters.set(wc.id, emit);
+  wc.on('did-start-navigation', (d) => { if (d.isMainFrame && !d.isSameDocument) blockedCount.set(wc.id, 0); });
   ['did-start-loading', 'did-stop-loading', 'did-navigate', 'did-navigate-in-page', 'page-title-updated'].forEach((ev) => wc.on(ev, emit));
   wc.setWindowOpenHandler(({ url }) => {
     if (isWeb(url)) wc.loadURL(url); else shell.openExternal(url);
@@ -127,7 +213,7 @@ ipcMain.on('lumen', (e, cmd, ...a) => {
   const [id] = a;
   switch (cmd) {
     case 'show': {
-      const v = tab(id);
+      const v = tab(id, !!a[2]);
       const url = a[1];
       if (url && v.webContents.getURL() !== url) v.webContents.loadURL(url);
       current = id;
@@ -137,10 +223,23 @@ ipcMain.on('lumen', (e, cmd, ...a) => {
     }
     case 'close': {
       const v = tabs.get(id);
-      if (v) { win.contentView.removeChildView(v); v.webContents.close(); tabs.delete(id); }
+      if (v) {
+        const wcId = v.webContents.id;
+        win.contentView.removeChildView(v);
+        v.webContents.close();
+        tabs.delete(id);
+        wcToTab.delete(wcId); blockedCount.delete(wcId); emitters.delete(wcId);
+      }
       if (current === id) current = null;
+      if (privTabs.delete(id) && privTabs.size === 0) {
+        const old = session.fromPartition(privPartition());
+        privGen += 1;
+        old.clearStorageData().catch(() => {});
+        old.clearCache().catch(() => {});
+      }
       break;
     }
+    case 'adblock': adblock = !!a[0]; break;
     case 'back': tabs.get(id)?.webContents.navigationHistory.goBack(); break;
     case 'fwd': tabs.get(id)?.webContents.navigationHistory.goForward(); break;
     case 'reload': tabs.get(id)?.webContents.reload(); break;
@@ -156,6 +255,7 @@ ipcMain.on('lumen', (e, cmd, ...a) => {
 
 app.on('open-url', (e, url) => { e.preventDefault(); openInLumen(url); });
 app.whenReady().then(() => {
+  loadBlocklist();
   createWindow();
   app.on('activate', () => { if (!win) createWindow(); });
 });

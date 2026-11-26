@@ -195,7 +195,7 @@ h2{font-size:20px;letter-spacing:-.01em;margin:44px 0 16px;text-align:left}
 }
 @media(min-width:701px){.mob{display:none}}
 /* app-läge (riktig webbläsare) */
-.ico{position:relative;overflow:hidden}.ico img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:20%;background:#fff;border-radius:inherit}
+.ico{position:relative;overflow:hidden}.ico img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:20%;background:#fff;border-radius:inherit;opacity:0;transition:opacity .25s}.ico img.ok{opacity:1}
 .prog{position:absolute;left:0;bottom:-1px;height:2.5px;width:0;background:linear-gradient(90deg,#5a7bff,#0071e3,#ffb35c);border-radius:2px;opacity:0;transition:width .25s ease,opacity .4s ease;z-index:6;pointer-events:none}
 .prog.on{opacity:1}
 .chrome{position:relative}
@@ -218,6 +218,43 @@ html.app .view.web{background:var(--win)}
 .fb svg{stroke:var(--c-blue)}.fb[data-f=fav] svg{stroke:var(--c-orange);fill:color-mix(in srgb,var(--c-orange) 25%,transparent)}
 .priv svg{stroke:var(--c-green)}
 @media(max-width:700px){.bar{gap:6px}}
+/* privat flik */
+html.private .chrome{--ink:#f5f5f7;--sub:#a1a1a6;--field:rgba(255,255,255,.13);--win:#2c2c2e;background:rgba(24,24,28,.94);color:#f5f5f7;border-color:rgba(255,255,255,.08)}
+html.private .view{--ink:#f5f5f7;--sub:#a1a1a6;--card:#2c2c2e;--line:rgba(255,255,255,.1);--field:rgba(255,255,255,.1);--win:#1c1c1e;background:#16161a;color:#f5f5f7}
+.ptag{display:none;font-size:12px;font-weight:600;color:#fff;background:linear-gradient(135deg,#5e5ce6,#bf5af2);border-radius:8px;padding:2px 8px;flex:none}
+html.private .ptag{display:inline-block}
+.tab.pv span::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#bf5af2;margin-right:6px;vertical-align:1px}
+.card.pv{background:#1c1c1e;color:#f5f5f7}.card.pv small{color:#bf5af2}
+.pstart .pico{width:96px;height:96px;margin:0 auto 22px;border-radius:26px;display:grid;place-items:center;background:linear-gradient(150deg,#5e5ce6,#2c1b6e);box-shadow:0 16px 30px rgba(60,40,160,.4)}
+.pstart .pico svg{width:52px;height:52px;fill:none;stroke:#fff;stroke-width:1.6}
+.pstart h1{color:#f5f5f7}
+/* sköld */
+.shield{display:flex;align-items:center;gap:3px;height:28px;padding:0 8px 0 6px;border-radius:9px;background:color-mix(in srgb,var(--c-green) 15%,transparent);color:var(--c-green);font-size:12px;font-weight:700;flex:none}
+.shield svg{width:15px;height:15px;stroke:var(--c-green)!important;fill:color-mix(in srgb,var(--c-green) 25%,transparent)}
+/* svep */
+@keyframes sl{from{transform:translateX(46px);opacity:.2}}@keyframes sr{from{transform:translateX(-46px);opacity:.2}}
+.addr.sl{animation:sl .28s cubic-bezier(.2,.8,.2,1)}.addr.sr{animation:sr .28s cubic-bezier(.2,.8,.2,1)}
+.tdots{order:-1;display:none;justify-content:center;gap:5px;flex-basis:100%;margin:-2px 0 0}.tdots i{width:5px;height:5px;border-radius:50%;background:var(--sub);opacity:.35}.tdots i.on{opacity:1;background:var(--c-blue)}
+@media(max-width:700px){.tdots.many{display:flex}}
+/* inställningar */
+.gear{position:absolute;top:14px;right:14px;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:var(--sub);background:var(--field)}
+.gear svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8}
+.start{position:relative}
+.sc{width:min(520px,100%);max-height:min(760px,90vh);background:var(--win);border:1px solid var(--line);border-radius:28px;box-shadow:0 40px 100px rgba(0,0,0,.35);display:grid;grid-template-rows:auto 1fr;overflow:hidden;animation:pop .28s cubic-bezier(.2,.9,.25,1.1)}
+.sl{overflow-y:auto;padding:4px 18px 22px}
+.sl section{margin-top:18px}.sl h4{margin:0 0 8px 6px;font-size:13px;font-weight:600;color:var(--sub)}
+.srow{display:flex;align-items:center;gap:12px;min-height:58px;padding:10px 16px;background:var(--field);border-radius:16px;font-size:16px}
+.srow+.srow{margin-top:8px}.srow>span{flex:1}.srow i{display:block;font-style:normal;font-size:13px;color:var(--sub);margin-top:2px}
+.srow input[type=text],.srow input[type=password]{flex:1;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--win);padding:0 12px;font-size:15px;color:var(--ink)}
+.sw{appearance:none;-webkit-appearance:none;width:51px;height:31px;border-radius:16px;background:color-mix(in srgb,var(--sub) 35%,transparent);position:relative;cursor:pointer;transition:background .2s;flex:none;margin:0}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.25);transition:left .2s}
+.sw:checked{background:#34c759}.sw:checked::after{left:22px}
+.steps2{margin:0;padding:0 6px 0 26px;font-size:14px;color:var(--sub);display:grid;gap:6px}.steps2 a{color:var(--blue)}
+.ok{color:var(--c-green)}.err{color:var(--c-red)}
+/* historik i snabblistan */
+.qh .seg{flex:none;order:0!important}.qh .seg button{height:36px;font-size:14px;padding:0 14px}
+.qsrch{padding:0 16px 8px}.qsrch input{width:100%;height:40px;border-radius:12px;border:0;background:var(--field);padding:0 14px;font-size:16px;outline:0}
+.qc{grid-template-rows:auto auto 1fr auto}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -230,7 +267,7 @@ html.app .view.web{background:var(--win)}
    <button class="ib" id="back" aria-label="Bakåt"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
    <button class="ib" id="fwd" aria-label="Framåt"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
    <form class="addr" id="addrf"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-    <input id="addr" type="search" autocomplete="off" placeholder="Sök eller ange webbplats" aria-label="Adressfält"></form>
+    <span class="ptag">Privat</span><input id="addr" type="search" autocomplete="off" placeholder="Sök eller ange webbplats" aria-label="Adressfält"><button type="button" class="shield" id="shield" hidden aria-label="Blockerade annonser och spårare"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span id="shc">0</span></button></form><div class="tdots" id="tdots"></div>
    <button class="ib bmb" id="bmbtn" aria-label="Bokmärken – håll inne för att spara sidan" title="Tryck: bokmärken · Håll inne: spara sidan"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button>
    <button class="ib" id="home" aria-label="Startsida"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg></button>
    <button class="ib" id="tabsbtn" aria-label="Visa flikar"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="13" height="13" rx="3"/><path d="M8 4h9a3 3 0 0 1 3 3v9"/></svg></button>
@@ -239,7 +276,7 @@ html.app .view.web{background:var(--win)}
  <main class="view" id="view"></main>
 </div></div>
 <div class="ov" id="ov" role="dialog" aria-label="Flikar"><div class="ovg" id="ovg"></div>
- <div class="ovbar"><button class="ib" id="ovnew" aria-label="Ny flik"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button><span id="ovcount" style="color:var(--sub);font-size:14px"></span><button class="done" id="ovdone">Klar</button></div></div>
+ <div class="ovbar"><button class="ib" id="ovnew" aria-label="Ny flik"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button><button class="pill ghost" id="ovpriv">+ Privat flik</button><span id="ovcount" style="color:var(--sub);font-size:14px"></span><button class="done" id="ovdone">Klar</button></div></div>
 <div class="bm" id="bm" role="dialog" aria-modal="true" aria-label="Bokmärken"><div class="sheet">
  <div class="sh-h"><h2>Bokmärken<small id="bmcount"></small></h2><button class="pill" id="bmadd">+ Lägg till</button><button class="ib" id="bmclose" aria-label="Stäng"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
  <div class="sh-t"><label class="sbox"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="bmq" type="search" placeholder="Sök bland bokmärken" autocomplete="off" aria-label="Sök bland bokmärken"></label>
@@ -265,11 +302,15 @@ html.app .view.web{background:var(--win)}
  <div class="btns"><button type="button" class="pill ghost" id="impc">Stäng</button><label class="pill" style="display:flex;align-items:center;cursor:pointer">Välj fil<input type="file" id="bmimp" accept=".html,.htm,.zip,text/html,application/zip" hidden></label></div>
 </form></div></div>
 <div class="ql" id="ql" role="dialog" aria-modal="true" aria-label="Bokmärken"><div class="qc" id="qc">
- <div class="qh"><b>Bokmärken<span id="qcount"></span></b><button class="lnk" id="qmanage">Hantera</button><button class="ib" id="qclose" aria-label="Stäng"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+ <div class="qh"><div class="seg" role="group" aria-label="Visa"><button data-qmode="bm" class="on">Bokmärken<span id="qcount" hidden></span></button><button data-qmode="hi">Historik</button></div><span style="flex:1"></span><button class="lnk" id="qmanage">Hantera</button><button class="ib" id="qclose" aria-label="Stäng"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+ <div class="qsrch" id="qsrch" hidden><input id="hq" type="search" placeholder="Sök i historiken" autocomplete="off" aria-label="Sök i historiken"></div>
  <div class="qwrap"><div class="qs" id="qs"></div><div class="rail" id="rail" aria-hidden="true"></div><div class="bub" id="bub"></div></div>
  <div class="qf">Håll inne bokmärkesknappen för att spara sidan · Håll inne en länk för fler val</div>
  <div class="qm" id="qm" role="menu"><button data-qa="open">Öppna</button><button data-qa="edit">Ändra namn eller mapp</button><button data-qa="copy">Kopiera adress</button><button data-qa="del" class="red">Ta bort</button></div>
 </div></div>
+<div class="bm" id="set" role="dialog" aria-modal="true" aria-label="Inställningar"><div class="sc">
+ <div class="qh"><b style="flex:1">Inställningar</b><button class="ib" id="setc" aria-label="Stäng"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+ <div class="sl" id="setb"></div></div></div>
 <div class="toast" id="toast" role="status"><span id="tmsg"></span><button id="tact"></button></div>
 <script>
 {
@@ -278,21 +319,24 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const FAVS=[['Wikipedia','https://sv.wikipedia.org','W','#3a3a3c'],['SVT Nyheter','https://www.svt.se','S','#1f8a4c'],['SMHI','https://www.smhi.se','☁','#0a84ff'],['YouTube','https://www.youtube.com','▶','#ff3b30'],['GitHub','https://github.com','G','#24292f'],['Apple','https://www.apple.com','A','#8e8e93'],['Google Maps','https://maps.google.com','M','#34c759'],['Claude','https://claude.ai','C','#d97757']];
 let tabs=[],cur=0,uid=1,sample=null,recent=store.get('lumen-recent',[]);
-const newTab=()=>({id:uid++,hist:[{type:'start'}],idx:0});
+const newTab=(p)=>({id:uid++,hist:[{type:'start'}],idx:0,priv:p===true});
 tabs=[newTab()];
 const tab=()=>tabs[cur],entry=()=>tab().hist[tab().idx];
 const isUrl=s=>/^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i.test(s.trim())&&!/\s/.test(s.trim());
 const title=e=>e.type==='start'?'Startsida':e.type==='search'?e.q:(e.title||e.host);
-const HOST=(()=>{const a=window.LumenHost,d=window.lumenHost;if(a)return{show:(t,u)=>a.show(String(t),u||''),close:t=>a.close(String(t)),back:t=>a.back(String(t)),fwd:t=>a.fwd(String(t)),reload:t=>a.reload(String(t)),layout:(x,y,w,h)=>a.layout(x,y,w,h),visible:b=>a.visible(!!b),platform:'android'};return d||null})();
+const HOST=(()=>{const a=window.LumenHost,d=window.lumenHost;if(a)return{show:(t,u,p)=>a.show(String(t),u||'',!!p),setAdblock:b=>a.setAdblock(!!b),version:(()=>{try{return a.version()}catch(e){return ''}})(),close:t=>a.close(String(t)),back:t=>a.back(String(t)),fwd:t=>a.fwd(String(t)),reload:t=>a.reload(String(t)),layout:(x,y,w,h)=>a.layout(x,y,w,h),visible:b=>a.visible(!!b),platform:'android'};return d||null})();
 if(HOST){document.documentElement.classList.add('app');if(HOST.platform==='darwin')document.documentElement.classList.add('mac')}
 const ENGINE='https://duckduckgo.com/?q=';
-function go(e){const t=tab();t.hist=t.hist.slice(0,t.idx+1);t.hist.push(e);t.idx++;render()}
+function go(e){const t=tab();if(!HOST&&e.type==='url')addHist(e.url,'',t.priv);t.hist=t.hist.slice(0,t.idx+1);t.hist.push(e);t.idx++;render()}
 function submit(raw){const s=raw.trim();if(!s)return;
  if(isUrl(s)){const url=/^https?:\/\//i.test(s)?s:'https://'+s;let host=url;try{host=new URL(url).hostname}catch(e){}go({type:'url',url,host})}
- else{recent=[s,...recent.filter(r=>r!==s)].slice(0,8);store.set('lumen-recent',recent);if(HOST)go({type:'url',url:ENGINE+encodeURIComponent(s),host:'Sök: '+s,title:s});else go({type:'search',q:s})}}
+ else{if(!tab().priv){recent=[s,...recent.filter(r=>r!==s)].slice(0,8);store.set('lumen-recent',recent)}if(HOST)go({type:'url',url:ENGINE+encodeURIComponent(s),host:'Sök: '+s,title:s});else go({type:'search',q:s})}}
 function renderTabs(){
- $('tabrow').innerHTML=tabs.map((t,i)=>`<div class="tab${i===cur?' on':''}" data-i="${i}" role="button" tabindex="0"><span>${esc(title(t.hist[t.idx]))}</span>${tabs.length>1?`<button class="x" data-x="${i}" aria-label="Stäng flik">×</button>`:''}</div>`).join('');
- $('ovg').innerHTML=tabs.map((t,i)=>`<button class="card${i===cur?' on':''}" data-i="${i}"><strong>${esc(title(t.hist[t.idx]))}</strong><small>${t.hist[t.idx].type==='search'?'Lumen Sök':t.hist[t.idx].type==='url'?'Webbplats':'Ny flik'}</small></button>`).join('');
+ $('tabrow').innerHTML=tabs.map((t,i)=>`<div class="tab${i===cur?' on':''}${t.priv?' pv':''}" data-i="${i}" role="button" tabindex="0"><span>${esc(title(t.hist[t.idx]))}</span>${tabs.length>1?`<button class="x" data-x="${i}" aria-label="Stäng flik">×</button>`:''}</div>`).join('');
+ $('ovg').innerHTML=tabs.map((t,i)=>`<button class="card${i===cur?' on':''}${t.priv?' pv':''}" data-i="${i}"><strong>${esc(title(t.hist[t.idx]))}</strong><small>${t.priv?'Privat flik':t.hist[t.idx].type==='search'?'Lumen Sök':t.hist[t.idx].type==='url'?'Webbplats':'Ny flik'}</small></button>`).join('');
+ document.documentElement.classList.toggle('private',!!tab().priv);
+ $('tdots').classList.toggle('many',tabs.length>1);$('tdots').innerHTML=tabs.length>1?tabs.map((t,i)=>`<i class="${i===cur?'on':''}"></i>`).join(''):'';
+ const bk=entry().type==='url'?(tab().blk||0):0;$('shield').hidden=!bk;$('shc').textContent=bk>99?'99+':bk;
  $('ovcount').textContent=tabs.length+(tabs.length===1?' flik':' flikar');
  const f=findBm(entry());$('bmbtn').classList.toggle('on',!!f);
  const ue=entry().type==='url';$('back').disabled=tab().idx===0&&!(ue&&tab().nb);$('fwd').disabled=tab().idx>=tab().hist.length-1&&!(ue&&tab().nf)}
@@ -304,7 +348,8 @@ function render(){const e=entry();renderTabs();$('view').classList.remove('web')
  else if(e.type==='url')v.innerHTML=`<div class="page"><div class="globe"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></div><h1>${esc(e.host)}</h1><p class="lead">Webbplatser öppnas säkert i ett eget fönster utanför Lumen.</p><a class="open" href="${esc(e.url)}" target="_blank" rel="noopener">Öppna ${esc(e.host)}</a></div>`;
  else renderSearch(e);
  appSync()}
-function startHTML(){return `<div class="start">
+function startHTML(){if(tab().priv)return `<div class="start pstart"><div class="pico"><svg viewBox="0 0 24 24"><path d="M3 12c2.5-4 5.5-6 9-6s6.5 2 9 6c-2.5 4-5.5 6-9 6s-6.5-2-9-6z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></svg></div><h1>Privat surfning</h1><p class="lead">Lumen sparar ingen historik och inga sökningar från privata flikar. När du stänger den sista privata fliken raderas kakor och inloggningar från dem.</p><form class="big" id="bigf"><input id="bigq" type="search" placeholder="Sök privat med DuckDuckGo" aria-label="Sök" autocomplete="off"><button class="go">Sök</button></form></div>`;
+ return `<div class="start"><button class="gear" id="gear" aria-label="Inställningar"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
  <img class="logo" src="lumen-icon-512.png" alt="Lumen" width="96" height="96">
  <h1 class="wmh"><svg class="wm" xmlns="http://www.w3.org/2000/svg" viewBox="-60 -330 6414 1900" role="img" aria-label="Lumen"><g>
 <defs>
@@ -346,8 +391,8 @@ document.addEventListener('click',ev=>{const c=ev.target.closest('[data-q]');if(
 $('back').onclick=()=>{goBack()};
 $('fwd').onclick=()=>{const t=tab();if(HOST&&entry().type==='url'&&t.nf)HOST.fwd(t.id);else if(t.idx<t.hist.length-1){t.idx++;render()}};
 $('home').onclick=()=>go({type:'start'});
-const add=()=>{tabs.push(newTab());cur=tabs.length-1;$('ov').classList.remove('on');render();setTimeout(()=>$('bigq')?.focus(),50)};
-$('newtab').onclick=add;$('ovnew').onclick=add;
+const add=(p)=>{tabs.push(newTab(p===true));cur=tabs.length-1;$('ov').classList.remove('on');render();setTimeout(()=>$('bigq')?.focus(),50)};
+$('newtab').onclick=()=>add();$('ovnew').onclick=()=>add();$('ovpriv').onclick=()=>add(true);
 $('tabsbtn').onclick=()=>{renderTabs();$('ov').classList.add('on')};
 $('ovdone').onclick=()=>$('ov').classList.remove('on');
 document.addEventListener('keydown',ev=>{const k=ev.key.toLowerCase(),mod=ev.metaKey||ev.ctrlKey;
@@ -356,10 +401,11 @@ document.addEventListener('keydown',ev=>{const k=ev.key.toLowerCase(),mod=ev.met
 
 /* ===== Bokmärken ===== */
 const LS='lumen-bm';
-const clean=d=>{const o={folders:[],items:[]};
- if(d&&Array.isArray(d.folders))o.folders=d.folders.filter(f=>f&&f.id&&f.name).map(f=>({id:String(f.id),name:String(f.name).slice(0,60)}));
+const clean=d=>{const o={folders:[],items:[],del:{}};
+ if(d&&d.del&&typeof d.del==='object')for(const[k,v]of Object.entries(d.del))if(+v)o.del[String(k)]=+v;
+ if(d&&Array.isArray(d.folders))o.folders=d.folders.filter(f=>f&&f.id&&f.name).map(f=>({id:String(f.id),name:String(f.name).slice(0,60),mt:+f.mt||0}));
  if(!o.folders.some(f=>f.id==='fav'))o.folders.unshift({id:'fav',name:'Favoriter'});
- if(d&&Array.isArray(d.items))o.items=d.items.filter(i=>i&&i.id&&(i.url||i.q)).map(i=>({id:String(i.id),title:String(i.title||'').slice(0,140),url:i.url?String(i.url):'',q:i.q?String(i.q):'',folder:String(i.folder||''),ts:+i.ts||0}));
+ if(d&&Array.isArray(d.items))o.items=d.items.filter(i=>i&&i.id&&(i.url||i.q)).map(i=>({id:String(i.id),title:String(i.title||'').slice(0,140),url:i.url?String(i.url):'',q:i.q?String(i.q):'',folder:String(i.folder||''),ts:+i.ts||0,mt:+i.mt||0}));
  return o};
 let bm=clean(store.get(LS,null)),bmF='all',bmSort='new',editing=null,remote=null,writing=false,dirty=false,saveT=0;
 const rid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
@@ -368,10 +414,10 @@ const normUrl=s=>{s=s.trim();if(!s)return '';if(/^http:\/\//i.test(s))s='https:/
 const hue=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h};
 const icon=i=>{if(i.q)return `<span class="ico" style="background:linear-gradient(150deg,#5ac8fa,#0071e3)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span>`;
  const hs=hostOf(i.url),h=hue(hs),l=(i.title||hs).trim().charAt(0).toUpperCase()||'•';
- return `<span class="ico" style="background:linear-gradient(150deg,hsl(${h} 72% 58%),hsl(${(h+28)%360} 68% 42%))">${esc(l)}<img src="https://icons.duckduckgo.com/ip3/${encodeURIComponent(hs)}.ico" alt="" loading="lazy" onerror="this.remove()"></span>`};
+ return `<span class="ico" style="background:linear-gradient(150deg,hsl(${h} 72% 58%),hsl(${(h+28)%360} 68% 42%))">${esc(l)}<img src="https://icons.duckduckgo.com/ip3/${encodeURIComponent(hs)}.ico" alt="" loading="lazy" onload="this.naturalWidth>1?this.classList.add('ok'):this.remove()" onerror="this.remove()"></span>`};
 const fname=id=>bm.folders.find(f=>f.id===id)?.name||'Osorterade';
 function findBm(e){if(e.type==='url'){const u=normUrl(e.url);return bm.items.find(i=>i.url===u)}if(e.type==='search')return bm.items.find(i=>i.q===e.q);return null}
-function save(){store.set(LS,bm);renderTabs();if(entry().type==='start')$('view').innerHTML=startHTML();if($('bm').classList.contains('on'))renderBm();if($('ql').classList.contains('on'))renderQl();
+function save(){store.set(LS,bm);syncSoon();renderTabs();if(entry().type==='start')$('view').innerHTML=startHTML();if($('bm').classList.contains('on'))renderBm();if($('ql').classList.contains('on'))renderQl();
  if(!remote)return;clearTimeout(saveT);saveT=setTimeout(flush,400)}
 async function flush(){if(writing){dirty=true;return}writing=true;dirty=false;
  try{await remote.set(JSON.parse(JSON.stringify(bm)));$('bmsync').textContent='Synkas med ditt konto – finns på alla dina enheter'}
@@ -409,9 +455,9 @@ function closeEd(){$('ed').classList.remove('on');editing=null}
 let toastT=0,undo=null;
 function toast(msg,act,fn){$('tmsg').textContent=msg;$('tact').textContent=act||'';$('tact').hidden=!act;undo=fn||null;$('toast').classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>$('toast').classList.remove('on'),4500)}
 $('tact').onclick=()=>{$('toast').classList.remove('on');undo&&undo()};
-function removeItem(id){const i=bm.items.findIndex(x=>x.id===id);if(i<0)return;const [it]=bm.items.splice(i,1);save();toast('”'+(it.title||hostOf(it.url))+'” togs bort','Ångra',()=>{bm.items.splice(i,0,it);save()})}
+function removeItem(id){const i=bm.items.findIndex(x=>x.id===id);if(i<0)return;const [it]=bm.items.splice(i,1);bm.del[id]=Date.now();save();toast('”'+(it.title||hostOf(it.url))+'” togs bort','Ångra',()=>{delete bm.del[id];it.mt=Date.now();bm.items.splice(i,0,it);save()})}
 $('edf').addEventListener('submit',ev=>{ev.preventDefault();if(!editing)return;const v=$('edu').value.trim();if(!v)return;
- const it=editing;it.title=$('edt').value.trim()||v;if(it.q)it.q=v;else it.url=normUrl(v);it.folder=$('edfo').value;
+ const it=editing;it.title=$('edt').value.trim()||v;if(it.q)it.q=v;else it.url=normUrl(v);it.folder=$('edfo').value;it.mt=Date.now();
  if(!bm.items.includes(it)){it.ts=Date.now();bm.items.push(it)}closeEd();save()});
 $('edc').onclick=closeEd;$('eddel').onclick=()=>{const id=editing?.id;closeEd();if(id)removeItem(id)};
 function addCurrent(){const e=entry(),b=$('bmbtn');b.classList.remove('pulse');void b.offsetWidth;b.classList.add('pulse');
@@ -430,9 +476,11 @@ bb.addEventListener('click',ev=>{if(held){held=false;ev.preventDefault();return}
 const sortKey=i=>(i.title||hostOf(i.url)).trim();
 const letter=i=>{const c=sortKey(i).charAt(0).toUpperCase();return /[A-ZÅÄÖÆØÜ]/.test(c)?c:'#'};
 let qItem=null;
+let qMode='bm';
 function openQl(){closeBm();renderQl();$('ql').classList.add('on');$('qs').scrollTop=0}
 function closeQl(){$('ql').classList.remove('on');$('qm').classList.remove('on')}
-function renderQl(){const it=[...bm.items].sort((a,b)=>sortKey(a).localeCompare(sortKey(b),'sv',{sensitivity:'base'}));
+function renderQl(){document.querySelectorAll('[data-qmode]').forEach(b=>b.classList.toggle('on',b.dataset.qmode===qMode));$('qsrch').hidden=qMode!=='hi';$('qmanage').textContent=qMode==='hi'?'Rensa':'Hantera';if(qMode==='hi'){renderHist();return}
+ const it=[...bm.items].sort((a,b)=>sortKey(a).localeCompare(sortKey(b),'sv',{sensitivity:'base'}));
  $('qcount').textContent=it.length?it.length:'';
  if(!it.length){$('qs').innerHTML='<div class="qe"><div><b>Inga bokmärken ännu</b>Håll inne bokmärkesknappen för att spara sidan du är på.</div></div>';$('rail').innerHTML='';return}
  const groups=[];for(const i of it){const l=letter(i);let g=groups[groups.length-1];if(!g||g.l!==l)groups.push(g={l,items:[]});g.items.push(i)}
@@ -449,7 +497,7 @@ $('rail').addEventListener('pointerdown',ev=>{scrubbing=true;try{$('rail').setPo
 $('rail').addEventListener('pointermove',ev=>{if(scrubbing)scrub(ev)});
 $('rail').addEventListener('pointerup',()=>scrubbing=false);$('rail').addEventListener('pointercancel',()=>scrubbing=false);
 let lp=0,lpX=0,lpY=0,lpFired=false;
-function showMenu(row){qItem=bm.items.find(i=>i.id===row.dataset.qid);if(!qItem)return;const m=$('qm'),c=$('qc').getBoundingClientRect(),r=row.getBoundingClientRect();
+function showMenu(row){qItem=qFind(row.dataset.qid);if(!qItem)return;m0();const m=$('qm'),c=$('qc').getBoundingClientRect(),r=row.getBoundingClientRect();
  m.querySelector('[data-qa=copy]').hidden=!!qItem.q;m.classList.add('on');
  const top=Math.min(r.bottom-c.top+4,c.height-m.offsetHeight-12);m.style.top=Math.max(12,top)+'px';m.style.left=Math.max(12,Math.min(r.left-c.left+56,c.width-m.offsetWidth-12))+'px';
  navigator.vibrate?.(10)}
@@ -460,30 +508,30 @@ $('qs').addEventListener('pointermove',ev=>{if(Math.abs(ev.clientX-lpX)+Math.abs
 $('qs').addEventListener('contextmenu',ev=>{const row=ev.target.closest('.qr');if(!row)return;ev.preventDefault();lpFired=true;showMenu(row)});
 $('qs').addEventListener('click',ev=>{const row=ev.target.closest('.qr');if(!row)return;
  if(lpFired){ev.preventDefault();lpFired=false;return}if($('qm').classList.contains('on')){ev.preventDefault();$('qm').classList.remove('on');return}
- const it=bm.items.find(i=>i.id===row.dataset.qid);if(it?.q){closeQl();submit(it.q)}});
+ const it=qFind(row.dataset.qid);if(it?.q){closeQl();submit(it.q)}});
 $('qm').addEventListener('click',async ev=>{const a=ev.target.closest('[data-qa]')?.dataset.qa;if(!a||!qItem)return;$('qm').classList.remove('on');const it=qItem;
  if(a==='open'){if(it.q){closeQl();submit(it.q)}else{const l=$('qs').querySelector(`a[data-qid="${CSS.escape(it.id)}"]`);l?.click()}}
- else if(a==='edit'){closeQl();openEd(it)}
+ else if(a==='edit'){if(it.hist){if(bm.items.some(i=>i.url===normUrl(it.url))){toast('Finns redan bland bokmärkena')}else{const n={id:rid(),title:it.title||hostOf(it.url),url:normUrl(it.url),q:'',folder:'fav',ts:Date.now(),mt:Date.now()};bm.items.push(n);save();toast('Sparat i Favoriter','Ändra',()=>{closeQl();openEd(n)})}}else{closeQl();openEd(it)}}
  else if(a==='copy'){try{await navigator.clipboard.writeText(it.url);toast('Adressen kopierades')}catch(e){toast(it.url)}}
- else if(a==='del'){removeItem(it.id);renderQl()}});
+ else if(a==='del'){if(it.hist)removeHist(it.hist);else removeItem(it.id);renderQl()}});
 $('qc').addEventListener('click',ev=>{if(!ev.target.closest('#qm')&&!ev.target.closest('.qr'))$('qm').classList.remove('on')});
 $('ql').addEventListener('click',ev=>{if(ev.target===$('ql'))closeQl()});
-$('qclose').onclick=closeQl;$('qmanage').onclick=()=>{closeQl();openBm()};$('bmclose').onclick=closeBm;
+$('qclose').onclick=closeQl;$('qmanage').onclick=()=>{if(qMode==='hi'){clearHist();return}closeQl();openBm()};$('bmclose').onclick=closeBm;
 $('bmadd').onclick=()=>openEd({id:rid(),title:'',url:'',q:'',folder:bmF==='all'||bmF===''?'fav':bmF});
 $('bm').addEventListener('click',ev=>{if(ev.target===$('bm'))closeBm()});
 $('bmq').addEventListener('input',renderList);
 document.querySelectorAll('[data-sort]').forEach(b=>b.onclick=()=>{bmSort=b.dataset.sort;document.querySelectorAll('[data-sort]').forEach(x=>x.classList.toggle('on',x===b));renderList()});
 $('bmside').addEventListener('click',ev=>{if(ev.target.closest('#nfb')){$('nff').hidden=false;$('nfb').hidden=true;$('nfn').focus();return}
  const b=ev.target.closest('[data-f]');if(b){bmF=b.dataset.f;renderBm()}});
-$('bmside').addEventListener('submit',ev=>{ev.preventDefault();const n=$('nfn').value.trim();if(!n){renderBm();return}const f={id:rid(),name:n};bm.folders.push(f);bmF=f.id;save()});
+$('bmside').addEventListener('submit',ev=>{ev.preventDefault();const n=$('nfn').value.trim();if(!n){renderBm();return}const f={id:rid(),name:n,mt:Date.now()};bm.folders.push(f);bmF=f.id;save()});
 $('bmlist').addEventListener('click',ev=>{const t=ev.target.closest('button');if(!t)return;const d=t.dataset;
  if(d.edit)openEd(bm.items.find(i=>i.id===d.edit));
  else if(d.del)removeItem(d.del);
  else if(d.runq){const it=bm.items.find(i=>i.id===d.runq);closeBm();submit(it.q)}
  else if(d.ren){const lh=t.parentElement,f=bm.folders.find(x=>x.id===d.ren);lh.innerHTML=`<form class="nf" id="renf" style="flex:1"><input id="renn" maxlength="60" aria-label="Nytt namn"><button class="pill">Spara</button></form>`;$('renn').value=f.name;$('renn').focus();
-  $('renf').onsubmit=e=>{e.preventDefault();const n=$('renn').value.trim();if(n)f.name=n;save()}}
+  $('renf').onsubmit=e=>{e.preventDefault();const n=$('renn').value.trim();if(n){f.name=n;f.mt=Date.now()}save()}}
  else if(d.rmf){const fi=bm.folders.findIndex(x=>x.id===d.rmf),f=bm.folders[fi],moved=bm.items.filter(i=>i.folder===f.id);
-  bm.folders.splice(fi,1);moved.forEach(i=>i.folder='');bmF='all';save();toast('Mappen ”'+f.name+'” togs bort','Ångra',()=>{bm.folders.splice(fi,0,f);moved.forEach(i=>i.folder=f.id);bmF=f.id;save()})}});
+  const now=Date.now();bm.folders.splice(fi,1);moved.forEach(i=>{i.folder='';i.mt=now});bm.del['f:'+f.id]=now;bmF='all';save();toast('Mappen ”'+f.name+'” togs bort','Ångra',()=>{delete bm.del['f:'+f.id];f.mt=Date.now();bm.folders.splice(fi,0,f);moved.forEach(i=>{i.folder=f.id;i.mt=Date.now()});bmF=f.id;save()})}});
 $('view').addEventListener('click',ev=>{if(ev.target.closest('[data-openbm]'))openQl();
  if(ev.target.closest('#addsug')){FAVS.forEach(([n,u],k)=>{if(!bm.items.some(i=>i.url===u))bm.items.push({id:rid(),title:n,url:u,q:'',folder:'fav',ts:Date.now()-k})});save()}});
 $('impopen').onclick=()=>$('imp').classList.add('on');$('impc').onclick=()=>$('imp').classList.remove('on');
@@ -514,23 +562,118 @@ function goBack(){const t=tab();if(HOST&&entry().type==='url'&&t.nb){HOST.back(t
 function anyOverlay(){return ['ql','bm','ov','imp'].some(id=>$(id).classList.contains('on'))}
 let lastRect='';
 function appSync(){if(!HOST)return;const e=entry();
- if(e.type==='url'){HOST.show(tab().id,e.url)}
+ if(e.type==='url'){HOST.show(tab().id,e.url,!!tab().priv)}
  const r=$('view').getBoundingClientRect(),k=[r.left,r.top,r.width,r.height].map(Math.round).join(',');
  if(k!==lastRect){lastRect=k;HOST.layout(Math.round(r.left),Math.round(r.top),Math.round(r.width),Math.round(r.height))}
  HOST.visible(e.type==='url'&&!anyOverlay())}
 if(HOST){new ResizeObserver(()=>appSync()).observe($('view'));
  const mo=new MutationObserver(()=>appSync());['ql','bm','ov','imp'].forEach(id=>mo.observe($(id),{attributes:true,attributeFilter:['class']}));
  document.addEventListener('click',ev=>{const a=ev.target.closest('a[href]');if(!a)return;const u=a.getAttribute('href');if(!/^https?:\/\//i.test(u))return;ev.preventDefault();ev.stopPropagation();closeQl();closeBm();$('imp').classList.remove('on');openUrl(u)},true)}
-function openUrl(u){let host=u;try{host=new URL(u).hostname}catch(e){}const e=entry();if(e.type==='url'&&HOST){e.url=u;e.host=host;e.title='';HOST.show(tab().id,u);render()}else go({type:'url',url:u,host})}
+function openUrl(u){let host=u;try{host=new URL(u).hostname}catch(e){}const e=entry();if(e.type==='url'&&HOST){e.url=u;e.host=host;e.title='';HOST.show(tab().id,u,!!tab().priv);render()}else go({type:'url',url:u,host})}
 window.lumenOpen=u=>{if(/^https?:\/\//i.test(u))openUrl(u)};
 window.lumenBack=()=>{if(anyOverlay()){closeQl();closeBm();$('ov').classList.remove('on');$('imp').classList.remove('on');return true}return goBack()};
 window.lumenKey=k=>{if(k==='t')add();else if(k==='l'){$('addr').focus();$('addr').select()}else if(k==='b')openQl();else if(k==='d')addCurrent();else if(k==='r'&&HOST)HOST.reload(tab().id);else if(k==='w'&&tabs.length>1){const [ct]=tabs.splice(cur,1);HOST&&HOST.close(ct.id);cur=Math.min(cur,tabs.length-1);render()}};
 let progT=0;
 window.lumenEvent=d=>{const t=tabs.find(x=>String(x.id)===String(d.tab));if(!t)return;const e=t.hist[t.idx];
  t.nb=!!d.back;t.nf=!!d.fwd;
- if(e.type==='url'&&d.url&&/^https?:/i.test(d.url)){e.url=d.url;try{e.host=new URL(d.url).hostname}catch(x){}if(d.title)e.title=d.title}
+ if(e.type==='url'&&d.url&&/^https?:/i.test(d.url)){e.url=d.url;try{e.host=new URL(d.url).hostname}catch(x){}if(d.title)e.title=d.title;if((+d.progress||100)>=100||d.title)addHist(d.url,d.title,t.priv)}
+ if(typeof d.blocked==='number'){const prev=t.blk||0;if(d.blocked>prev){abTotal+=d.blocked-prev;clearTimeout(abT);abT=setTimeout(()=>store.set('lumen-abtot',abTotal),2000)}t.blk=d.blocked}
  if(t===tab()){if(document.activeElement!==$('addr'))$('addr').value=e.type==='url'?e.url:$('addr').value;renderTabs();
   const p=$('prog'),v=+d.progress||100;p.style.width=v+'%';p.classList.toggle('on',v<100);clearTimeout(progT);if(v>=100)progT=setTimeout(()=>{p.style.width='0'},450)}};
+/* ===== Historik ===== */
+let hist=store.get('lumen-hist',[]),hmeta=store.get('lumen-hmeta',{del:{},clr:0});
+if(!Array.isArray(hist))hist=[];if(!hmeta||typeof hmeta!=='object')hmeta={del:{},clr:0};hmeta.del=hmeta.del||{};
+const saveHist=()=>{store.set('lumen-hist',hist);store.set('lumen-hmeta',hmeta)};
+function addHist(u,t,priv){if(priv||!/^https?:\/\//i.test(u||''))return;const l=hist[0];
+ if(l&&l.u===u){if(t&&l.t!==t){l.t=t;saveHist()}return}
+ hist.unshift({u,t:t||'',ts:Date.now()});if(hist.length>3000)hist.length=3000;saveHist();syncSoon()}
+function removeHist(h){const i=hist.indexOf(h);if(i<0)return;hist.splice(i,1);hmeta.del[h.ts]=Date.now();saveHist();syncSoon();toast('Togs bort från historiken','Ångra',()=>{delete hmeta.del[h.ts];hist.splice(i,0,h);saveHist();syncSoon();if($('ql').classList.contains('on'))renderQl()})}
+function clearHist(){if(!hist.length){toast('Historiken är redan tom');return}const old=hist,oc=hmeta.clr;hist=[];hmeta.clr=Date.now();saveHist();syncSoon();renderQl();if($('set').classList.contains('on'))renderSet();
+ toast('Historiken rensades','Ångra',()=>{hist=old;hmeta.clr=oc;saveHist();syncSoon();if($('ql').classList.contains('on'))renderQl()})}
+function qFind(id){if(String(id).startsWith('h:')){const ts=+String(id).slice(2),h=hist.find(x=>x.ts===ts);return h?{id,title:h.t,url:h.u,q:'',hist:h}:null}return bm.items.find(i=>i.id===id)}
+function m0(){const h=qItem&&qItem.hist;$('qm').querySelector('[data-qa=edit]').textContent=h?'Spara som bokmärke':'Ändra namn eller mapp';$('qm').querySelector('[data-qa=del]').textContent=h?'Ta bort från historiken':'Ta bort'}
+const dayName=ts=>{const d=new Date(ts),n=new Date();const a=new Date(d.getFullYear(),d.getMonth(),d.getDate()),b=new Date(n.getFullYear(),n.getMonth(),n.getDate());const diff=Math.round((b-a)/864e5);
+ if(diff===0)return 'Idag';if(diff===1)return 'Igår';if(diff<7)return d.toLocaleDateString('sv-SE',{weekday:'long'}).replace(/^./,c=>c.toUpperCase());return d.toLocaleDateString('sv-SE',{day:'numeric',month:'long',year:d.getFullYear()===n.getFullYear()?undefined:'numeric'})};
+function renderHist(){const q=$('hq').value.trim().toLowerCase();$('rail').innerHTML='';
+ const list=hist.filter(h=>!q||(h.t+' '+h.u).toLowerCase().includes(q)).slice(0,400);
+ $('qcount').textContent='';
+ if(!list.length){$('qs').innerHTML=`<div class="qe"><div><b>${q?'Inga träffar':'Ingen historik ännu'}</b>${q?'Prova ett annat ord.':'Sidor du besöker visas här. Privata flikar sparas aldrig.'}</div></div>`;return}
+ let out='',last='';for(const h of list){const dn=dayName(h.ts);if(dn!==last){if(last)out+='</section>';out+=`<section><div class="qg">${esc(dn)}</div>`;last=dn}
+  const hs=hostOf(h.u),tm=new Date(h.ts).toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit'});
+  const href=/^https?:\/\//i.test(h.u)?h.u:'#';
+  out+=`<a class="qr" data-qid="h:${h.ts}" href="${esc(href)}" target="_blank" rel="noopener">${icon({title:h.t||hs,url:h.u})}<span class="tx"><b>${esc(h.t||hs)}</b><i>${esc(hs)} · ${tm}</i></span></a>`}
+ $('qs').innerHTML=out+'</section>'}
+document.querySelectorAll('[data-qmode]').forEach(b=>b.onclick=()=>{qMode=b.dataset.qmode;$('qm').classList.remove('on');renderQl();$('qs').scrollTop=0});
+$('hq').addEventListener('input',()=>renderHist());
+
+/* ===== Svep mellan flikar (adressfältet) ===== */
+function switchTab(n,dir){if(n===cur)return;cur=n;render();const a=$('addrf');a.classList.remove('sl','sr');void a.offsetWidth;a.classList.add(dir)}
+{let sx=0,sy=0,on=false;const a=$('addrf');
+ a.addEventListener('touchstart',e=>{if(document.activeElement===$('addr'))return;const t=e.touches[0];sx=t.clientX;sy=t.clientY;on=true},{passive:true});
+ a.addEventListener('touchend',e=>{if(!on)return;on=false;const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;
+  if(Math.abs(dx)>50&&Math.abs(dy)<40&&tabs.length>1){if(dx<0&&cur<tabs.length-1)switchTab(cur+1,'sl');else if(dx>0&&cur>0)switchTab(cur-1,'sr')}},{passive:true})}
+
+/* ===== Annonsblockering ===== */
+const SET=Object.assign({ab:true},store.get('lumen-set',{}));
+let abTotal=+store.get('lumen-abtot',0)||0,abT=0;
+if(HOST&&HOST.setAdblock)HOST.setAdblock(SET.ab);
+$('shield').onclick=()=>{const n=tab().blk||0;toast(`${n} ${n===1?'annons eller spårare':'annonser och spårare'} blockerade på sidan`,'Inställningar',openSet)};
+
+/* ===== Inställningar ===== */
+function openSet(){closeQl();renderSet();$('set').classList.add('on')}
+$('setc').onclick=()=>$('set').classList.remove('on');
+$('set').addEventListener('click',ev=>{if(ev.target===$('set'))$('set').classList.remove('on')});
+$('view').addEventListener('click',ev=>{if(ev.target.closest('#gear'))openSet()});
+const fmtTime=ts=>ts?new Date(ts).toLocaleString('sv-SE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'aldrig';
+function renderSet(){
+ $('setb').innerHTML=`<section><h4>Sökmotor</h4><div class="srow"><span>DuckDuckGo<i>Privat sökning utan spårning</i></span><span class="ok" style="flex:none">✓</span></div></section>
+ ${HOST?`<section><h4>Annonsblockering</h4><label class="srow"><span>Blockera annonser och spårare<i>${abTotal.toLocaleString('sv-SE')} blockerade hittills</i></span><input type="checkbox" class="sw" id="abt" ${SET.ab?'checked':''}></label></section>`:''}
+ ${HOST?syncHTML():''}
+ <section><h4>Historik</h4><div class="srow"><span>${hist.length.toLocaleString('sv-SE')} ${hist.length===1?'besökt sida':'besökta sidor'}<i>Privata flikar sparas aldrig</i></span><button class="pill ghost" id="hclear">Rensa</button></div></section>
+ <section><h4>Om Lumen</h4><div class="srow"><span>Lumen ${esc(HOST&&HOST.version||'webb')}<i>Webbläsare och sökmotor</i></span></div></section>`}
+$('setb').addEventListener('change',ev=>{if(ev.target.id==='abt'){SET.ab=ev.target.checked;store.set('lumen-set',SET);HOST&&HOST.setAdblock&&HOST.setAdblock(SET.ab);toast(SET.ab?'Annonsblockering på':'Annonsblockering av – ladda om sidan')}});
+$('setb').addEventListener('click',ev=>{const t=ev.target.closest('button');if(!t)return;
+ if(t.id==='hclear')clearHist();
+ else if(t.id==='syncgo'){const v=$('synctok').value.trim();if(!v){$('synctok').focus();return}syn={token:v,gist:'',last:0};store.set('lumen-sync',syn);syncNow(true)}
+ else if(t.id==='syncnow')syncNow(true);
+ else if(t.id==='syncoff'){syn=null;store.set('lumen-sync',null);syncMsg='';renderSet();toast('Synken är avstängd på den här enheten')}});
+
+/* ===== Synk mellan enheter (privat GitHub-gist) ===== */
+let syn=store.get('lumen-sync',null),syncMsg='',syncing=false,syncT=0;
+const TOKEN_URL='https://github.com/settings/tokens/new?scopes=gist&description=Lumen%20synk';
+function syncHTML(){if(syn&&syn.token)return `<section><h4>Synk mellan enheter</h4><div class="srow"><span>Bokmärken och historik synkas<i class="${syncMsg.startsWith('Fel')?'err':''}">${esc(syncMsg||'Senast synkad: '+fmtTime(syn.last))}</i></span></div>
+ <div class="srow"><button class="pill" id="syncnow">Synka nu</button><span></span><button class="pill ghost" id="syncoff">Stäng av</button></div></section>`;
+ return `<section><h4>Synk mellan enheter</h4><div class="srow"><span>Håll bokmärken och historik lika på telefon och dator<i>Sparas privat på ditt GitHub-konto</i></span></div>
+ <ol class="steps2"><li>Öppna <a href="${TOKEN_URL}">github.com – ny nyckel</a> (rutan <b>gist</b> är redan ikryssad).</li><li>Välj <b>No expiration</b>, tryck <b>Generate token</b> och kopiera nyckeln.</li><li>Klistra in den här. Gör samma sak på datorn med samma nyckel.</li></ol>
+ <div class="srow" style="margin-top:10px"><input type="password" id="synctok" placeholder="ghp_…" autocomplete="off" aria-label="GitHub-nyckel"><button class="pill" id="syncgo">Anslut</button></div>${syncMsg?`<p class="ip err" style="margin:8px 6px 0">${esc(syncMsg)}</p>`:''}</section>`}
+function syncSoon(){if(!HOST||!syn||!syn.token)return;clearTimeout(syncT);syncT=setTimeout(()=>syncNow(false),4000)}
+async function gh(path,opt){const r=await fetch('https://api.github.com'+path,Object.assign({},opt,{headers:{'Authorization':'Bearer '+syn.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'}}));
+ if(!r.ok){const e=new Error('http');e.status=r.status;throw e}return r.json()}
+function payload(){return JSON.stringify({v:1,bm:{folders:bm.folders,items:bm.items,del:bm.del},hist:hist.slice(0,1500),hmeta})}
+function mergeIn(r){if(!r||typeof r!=='object')return;const rb=clean(r.bm||{});
+ const del=Object.assign({},bm.del);for(const[k,v]of Object.entries(rb.del))del[k]=Math.max(del[k]||0,v);
+ const t=i=>i.mt||i.ts||0,im=new Map();for(const i of[...rb.items,...bm.items]){const o=im.get(i.id);if(!o||t(i)>t(o))im.set(i.id,i)}
+ const fm=new Map();for(const f of[...rb.folders,...bm.folders]){const o=fm.get(f.id);if(!o||(f.mt||0)>(o.mt||0))fm.set(f.id,f)}
+ bm=clean({folders:[...fm.values()].filter(f=>f.id==='fav'||!(del['f:'+f.id]>(f.mt||0))),items:[...im.values()].filter(i=>!(del[i.id]>t(i))),del});
+ const rm=r.hmeta&&typeof r.hmeta==='object'?r.hmeta:{del:{},clr:0};hmeta.clr=Math.max(+hmeta.clr||0,+rm.clr||0);for(const[k,v]of Object.entries(rm.del||{}))hmeta.del[k]=Math.max(hmeta.del[k]||0,+v||0);
+ const hm=new Map();for(const h of[...(Array.isArray(r.hist)?r.hist:[]),...hist])if(h&&h.u&&+h.ts&&!hm.has(h.ts))hm.set(+h.ts,{u:String(h.u),t:String(h.t||''),ts:+h.ts});
+ hist=[...hm.values()].filter(h=>h.ts>hmeta.clr&&!hmeta.del[h.ts]).sort((a,b)=>b.ts-a.ts).slice(0,3000)}
+async function syncNow(loud){if(!HOST||!syn||!syn.token||syncing)return;syncing=true;
+ try{if(!syn.gist){const list=await gh('/gists?per_page=100');const g=list.find(x=>x.description==='Lumen synk'&&x.files&&x.files['lumen.json']);
+   if(g)syn.gist=g.id;else{const c=await gh('/gists',{method:'POST',body:JSON.stringify({description:'Lumen synk',public:false,files:{'lumen.json':{content:payload()}}})});syn.gist=c.id}}
+  const g=await gh('/gists/'+syn.gist);const f=g.files&&g.files['lumen.json'];let txt=f?f.content:'';
+  if(f&&f.truncated&&f.raw_url)txt=await (await fetch(f.raw_url)).text();
+  if(txt){try{mergeIn(JSON.parse(txt))}catch(e){}}
+  store.set(LS,bm);saveHist();const p=payload();
+  if(p!==txt)await gh('/gists/'+syn.gist,{method:'PATCH',body:JSON.stringify({files:{'lumen.json':{content:p}}})});
+  syn.last=Date.now();store.set('lumen-sync',syn);syncMsg='';
+  renderTabs();if(entry().type==='start')$('view').innerHTML=startHTML();if($('bm').classList.contains('on'))renderBm();if($('ql').classList.contains('on'))renderQl();
+  if(loud)toast('Synkad – '+bm.items.length+(bm.items.length===1?' bokmärke':' bokmärken'))}
+ catch(e){syncMsg=e.status===401?'Fel: nyckeln fungerar inte. Skapa en ny och anslut igen.':e.status===404?'Fel: synkfilen hittades inte.':'Fel: kunde inte nå GitHub. Försöker igen senare.';if(e.status===404&&syn){syn.gist='';store.set('lumen-sync',syn)}
+  if(loud)toast(syncMsg.replace('Fel: ',''))}
+ finally{syncing=false;if($('set').classList.contains('on'))renderSet()}}
+if(HOST&&syn&&syn.token){setTimeout(()=>syncNow(false),1500);setInterval(()=>{if(!document.hidden)syncNow(false)},180000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncNow(false)})}
+
 render();
 window.claude?.use?.('sample').then(s=>{sample=s;if(entry().type==='search'&&!entry().data)render()}).catch(()=>{});
 }

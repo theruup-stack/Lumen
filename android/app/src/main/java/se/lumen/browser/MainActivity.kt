@@ -19,12 +19,19 @@ import android.webkit.URLUtil
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.Toast
+import androidx.webkit.ProfileStore
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
 import org.json.JSONObject
+import java.io.ByteArrayInputStream
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Lumen för Android.
@@ -45,14 +52,23 @@ class MainActivity : Activity() {
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private var pendingUrl: String? = null
     private var uiReady = false
+    private val privateTabs = HashSet<String>()
+    private val blockedCount = ConcurrentHashMap<String, AtomicInteger>()
+    private val emitPending = ConcurrentHashMap<String, Boolean>()
+    private val privateProfiles by lazy {
+        try { WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE) } catch (e: Throwable) { false }
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Blocker.init(this)
         root = FrameLayout(this)
         ui = WebView(this)
         setup(ui)
         ui.settings.allowFileAccess = true
+        @Suppress("DEPRECATION")
+        ui.settings.allowUniversalAccessFromFileURLs = true
         ui.setBackgroundColor(Color.TRANSPARENT)
         ui.addJavascriptInterface(Bridge(), "LumenHost")
         ui.webViewClient = object : WebViewClient() {
@@ -141,10 +157,24 @@ class MainActivity : Activity() {
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private fun tab(id: String): WebView = tabs.getOrPut(id) {
+    private fun tab(id: String, priv: Boolean = false): WebView = tabs.getOrPut(id) {
         val w = WebView(this)
+        if (priv) {
+            privateTabs.add(id)
+            if (privateProfiles) {
+                try {
+                    ProfileStore.getInstance().getOrCreateProfile(PRIVATE_PROFILE)
+                    WebViewCompat.setProfile(w, PRIVATE_PROFILE)
+                } catch (e: Throwable) { }
+            }
+        }
         setup(w)
-        CookieManager.getInstance().setAcceptThirdPartyCookies(w, true)
+        if (priv) {
+            w.settings.cacheMode = WebSettings.LOAD_NO_CACHE
+            w.settings.saveFormData = false
+        } else {
+            CookieManager.getInstance().setAcceptThirdPartyCookies(w, true)
+        }
         w.setBackgroundColor(Color.WHITE)
         w.visibility = View.GONE
         w.webViewClient = object : WebViewClient() {
@@ -155,7 +185,17 @@ class MainActivity : Activity() {
                 return true
             }
 
-            override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) = emit(id)
+            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+                if (request.isForMainFrame || !Blocker.blocked(request.url.host)) return null
+                blockedCount.getOrPut(id) { AtomicInteger() }.incrementAndGet()
+                if (emitPending.put(id, true) == null) ui.postDelayed({ emitPending.remove(id); emit(id) }, 400)
+                return WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream(ByteArray(0)))
+            }
+
+            override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {
+                blockedCount[id]?.set(0)
+                emit(id)
+            }
             override fun onPageFinished(view: WebView, url: String) = emit(id)
             override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) = emit(id)
         }
@@ -208,6 +248,7 @@ class MainActivity : Activity() {
         o.put("back", w.canGoBack())
         o.put("fwd", w.canGoForward())
         o.put("progress", w.progress)
+        o.put("blocked", blockedCount[id]?.get() ?: 0)
         js("window.lumenEvent&&lumenEvent($o)")
     }
 
@@ -225,8 +266,8 @@ class MainActivity : Activity() {
         private val density get() = resources.displayMetrics.density
 
         @JavascriptInterface
-        fun show(id: String, url: String) = runOnUiThread {
-            val w = tab(id)
+        fun show(id: String, url: String, priv: Boolean) = runOnUiThread {
+            val w = tab(id, priv)
             if (url.isNotEmpty() && w.url != url) w.loadUrl(url)
             current = id
             applyVisibility()
@@ -237,10 +278,25 @@ class MainActivity : Activity() {
         fun close(id: String) = runOnUiThread {
             tabs.remove(id)?.let {
                 root.removeView(it)
+                if (privateTabs.contains(id)) {
+                    it.clearCache(true)
+                    it.clearFormData()
+                    it.clearHistory()
+                }
                 it.destroy()
             }
+            blockedCount.remove(id)
             if (current == id) current = null
+            if (privateTabs.remove(id) && privateTabs.isEmpty()) wipePrivate()
         }
+
+        @JavascriptInterface
+        fun setAdblock(on: Boolean) { Blocker.enabled = on }
+
+        @JavascriptInterface
+        fun version(): String = try {
+            packageManager.getPackageInfo(packageName, 0).versionName ?: ""
+        } catch (e: Exception) { "" }
 
         @JavascriptInterface
         fun back(id: String) = runOnUiThread { tabs[id]?.let { if (it.canGoBack()) it.goBack() } }
@@ -263,6 +319,19 @@ class MainActivity : Activity() {
             showContent = v
             applyVisibility()
         }
+    }
+
+    /** Raderar kakor och lagrad data från privata flikar. */
+    private fun wipePrivate() {
+        if (!privateProfiles) return
+        try {
+            val p = ProfileStore.getInstance().getProfile(PRIVATE_PROFILE) ?: return
+            p.cookieManager.removeAllCookies(null)
+            p.webStorage.deleteAllData()
+        } catch (e: Throwable) { }
+        ui.postDelayed({
+            try { ProfileStore.getInstance().deleteProfile(PRIVATE_PROFILE) } catch (e: Throwable) { }
+        }, 1500)
     }
 
     @Deprecated("Deprecated in Java")
@@ -290,11 +359,13 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         for (w in tabs.values) w.destroy()
+        if (privateTabs.isNotEmpty()) { privateTabs.clear(); wipePrivate() }
         ui.destroy()
         super.onDestroy()
     }
 
     companion object {
         private const val PICK_FILE = 42
+        private const val PRIVATE_PROFILE = "lumen-private"
     }
 }
