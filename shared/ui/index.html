@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lumen webbläsare</title>
+<link rel="icon" type="image/png" href="lumen-icon-64.png">
+<link rel="apple-touch-icon" href="lumen-icon-180.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: lugn, exakt, premium – som en Apple-produktsida, mycket luft
+   IDEA: en riktig webbläsare (Safari-lik): flikar, adressfält, startsida, sökmotor
+   PICTURE: själva webbläsarfönstret – glasad verktygsrad, stor sökruta, favoritikoner
+   COLOUR and TYPE: #f5f5f7 / #1d1d1f, accent blå #0071e3; natt #000/#f5f5f7; SF/Inter
+   LAYOUT: fönster fyller skärmen; på mobil hamnar adressfältet längst ner som i iOS */
+:root{color-scheme:light dark;
+--bg:light-dark(#f5f5f7,#000);--win:light-dark(#fff,#161617);--ink:light-dark(#1d1d1f,#f5f5f7);
+--sub:light-dark(#6e6e73,#a1a1a6);--line:light-dark(rgba(0,0,0,.08),rgba(255,255,255,.1));
+--glass:light-dark(rgba(246,246,248,.78),rgba(30,30,32,.72));--field:light-dark(rgba(0,0,0,.055),rgba(255,255,255,.09));
+--card:light-dark(#fff,#1c1c1e);--blue:light-dark(#0071e3,#2997ff);--shadow:light-dark(0 20px 60px rgba(0,0,0,.12),0 20px 60px rgba(0,0,0,.6))}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:clip}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+:focus-visible{outline:3px solid color-mix(in srgb,var(--blue) 55%,transparent);outline-offset:2px;border-radius:10px}
+.shell{max-width:1240px;margin:0 auto;padding:clamp(0px,2.4vw,28px);height:100%}
+.win{height:100%;min-height:560px;background:var(--win);border-radius:clamp(0px,1.6vw,16px);box-shadow:var(--shadow);border:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+.chrome{background:var(--glass);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.tabs{display:flex;align-items:center;gap:6px;padding:10px 12px 0}
+.dots{display:flex;gap:8px;padding:0 10px 0 4px}.dots i{width:12px;height:12px;border-radius:50%;background:#ff5f57}.dots i:nth-child(2){background:#febc2e}.dots i:nth-child(3){background:#28c840}
+.tabrow{display:flex;gap:4px;flex:1;overflow-x:auto;scrollbar-width:none}
+.tab{flex:0 1 200px;display:flex;align-items:center;gap:8px;height:34px;padding:0 8px 0 12px;border-radius:9px;font-size:13px;color:var(--sub);white-space:nowrap}
+.tab span{overflow:hidden;text-overflow:ellipsis;flex:1;text-align:left}
+.tab.on{background:var(--win);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.tab .x{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;opacity:.6}.tab .x:hover{background:var(--field);opacity:1}
+.ib{width:44px;height:44px;display:grid;place-items:center;border-radius:12px;color:var(--ink)}
+.ib:hover{background:var(--field)}.ib:disabled{opacity:.3;cursor:default;background:none}
+.ib svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bar{display:flex;align-items:center;gap:4px;padding:6px 10px 8px}
+.addr{flex:1;max-width:640px;margin:0 auto;display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;background:var(--field);border-radius:12px}
+.addr svg{width:16px;height:16px;flex:none;fill:none;stroke:var(--sub);stroke-width:2}
+.addr input{flex:1;border:0;background:none;outline:none;font-size:16px;text-align:center}
+.addr input:focus{text-align:left}
+.view{flex:1;overflow-y:auto}
+/* startsida */
+.start{max-width:760px;margin:0 auto;padding:clamp(36px,8vh,96px) 20px 48px;text-align:center}
+.logo{width:96px;height:96px;margin:0 auto 22px;display:block;filter:drop-shadow(0 16px 30px rgba(60,80,200,.3))}
+.wmh{margin:0 0 10px;line-height:0}.wm{height:clamp(52px,9vw,72px);width:auto;color:var(--ink);overflow:visible}
+h1{font-size:clamp(34px,6vw,52px);line-height:1.05;letter-spacing:-.025em;font-weight:700;margin:0 0 8px;text-wrap:balance}
+.lead{color:var(--sub);font-size:17px;margin:0 0 30px}
+.big{display:flex;align-items:center;gap:10px;height:56px;padding:0 8px 0 20px;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,.07);transition:box-shadow .3s}
+.big:focus-within{box-shadow:0 0 0 4px color-mix(in srgb,var(--blue) 25%,transparent),0 8px 30px rgba(0,0,0,.08)}
+.big input{flex:1;border:0;outline:0;background:none;font-size:17px}
+.go{height:42px;padding:0 18px;border-radius:12px;background:var(--blue);color:#fff;font-weight:600;font-size:15px}
+h2{font-size:20px;letter-spacing:-.01em;margin:44px 0 16px;text-align:left}
+.favs{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:18px 10px}
+.fav{display:flex;flex-direction:column;align-items:center;gap:8px;text-decoration:none;color:var(--ink);font-size:13px}
+.fav b{width:64px;height:64px;border-radius:16px;display:grid;place-items:center;color:#fff;font-size:24px;font-weight:600;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 4px 12px rgba(0,0,0,.12)}
+.fav:hover b{transform:translateY(-2px);transition:transform .2s}
+.recent{display:flex;flex-wrap:wrap;gap:8px}
+.chip{height:36px;padding:0 14px;border-radius:18px;background:var(--field);font-size:14px}
+.chip:hover{background:color-mix(in srgb,var(--blue) 14%,var(--field))}
+.empty{color:var(--sub);font-size:14px;text-align:left;margin:0}
+.priv{margin-top:44px;display:flex;gap:16px;align-items:center;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 20px}
+.priv svg{width:36px;height:36px;flex:none;fill:none;stroke:var(--blue);stroke-width:1.8}
+.priv p{margin:0;font-size:14px;color:var(--sub)}.priv strong{color:var(--ink);display:block;font-size:16px}
+/* sökresultat */
+.res{max-width:760px;margin:0 auto;padding:28px 20px 60px}
+.ans{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px 24px;position:relative;overflow:hidden}
+.ans::before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,#0071e3,#7a5cff,#ff5f8a)}
+.tag{font-size:13px;color:var(--sub);display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.ans p{margin:0;font-size:17px;line-height:1.6}
+.note{font-size:13px;color:var(--sub);margin:12px 0 0}
+.hit{padding:18px 4px;border-bottom:1px solid var(--line)}
+.hit a{text-decoration:none;color:var(--ink)}
+.hit .u{font-size:13px;color:var(--sub);overflow-wrap:anywhere}
+.hit h3{font-size:19px;font-weight:600;margin:2px 0 4px;color:var(--blue);letter-spacing:-.01em}
+.hit a:hover h3{text-decoration:underline}
+.hit p{margin:0;color:var(--sub);font-size:15px}
+.sk{height:14px;border-radius:7px;background:linear-gradient(90deg,var(--field) 25%,color-mix(in srgb,var(--field) 40%,transparent) 50%,var(--field) 75%);background-size:300% 100%;animation:sh 1.3s infinite;margin:10px 0}
+@keyframes sh{to{background-position:-150% 0}}
+.more{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.ext{display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--line);text-decoration:none;color:var(--ink);font-size:14px}
+/* extern sida */
+.page{max-width:560px;margin:0 auto;padding:clamp(48px,12vh,120px) 20px;text-align:center}
+.globe{width:88px;height:88px;margin:0 auto 20px;border-radius:24px;background:linear-gradient(160deg,#5ac8fa,#0071e3);display:grid;place-items:center}
+.globe svg{width:46px;height:46px;fill:none;stroke:#fff;stroke-width:1.6}
+.page h1{font-size:clamp(26px,5vw,36px);overflow-wrap:anywhere}
+.open{display:inline-flex;align-items:center;height:48px;padding:0 24px;border-radius:24px;background:var(--blue);color:#fff;text-decoration:none;font-weight:600;margin-top:18px}
+/* flikoversikt */
+.ov{position:fixed;inset:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);padding:24px 20px 100px;overflow-y:auto;display:none}
+.ov.on{display:block}
+.ovg{max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px}
+.card{background:var(--card);border-radius:16px;border:1px solid var(--line);height:200px;text-align:left;padding:14px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 6px 20px rgba(0,0,0,.08)}
+.card.on{outline:3px solid var(--blue)}
+.card small{color:var(--sub)}
+.ovbar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:center;padding:12px 20px calc(12px + env(safe-area-inset-bottom));background:var(--glass);backdrop-filter:blur(20px);border-top:1px solid var(--line)}
+.done{font-weight:600;color:var(--blue);height:44px;padding:0 10px}
+/* bokmärken */
+.bmb.on svg{fill:var(--blue);stroke:var(--blue)}
+.bmb{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;position:relative}.bmb.hold::after{content:'';position:absolute;inset:4px;border-radius:12px;border:2.5px solid var(--blue);clip-path:inset(0 100% 0 0);animation:fill .52s linear forwards}@keyframes fill{to{clip-path:inset(0 0 0 0)}}
+.bmb.pulse{animation:pulse .5s cubic-bezier(.2,.8,.2,1)}@keyframes pulse{40%{transform:scale(1.35)}}
+/* snabblista */
+.ql{position:fixed;inset:0;z-index:28;display:none;place-items:center;padding:16px;background:rgba(0,0,0,.28);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.ql.on{display:grid;animation:fade .2s ease}
+.qc{width:min(480px,100%);height:min(720px,82vh);background:var(--glass);backdrop-filter:saturate(180%) blur(30px);-webkit-backdrop-filter:saturate(180%) blur(30px);border:1px solid var(--line);border-radius:28px;box-shadow:0 40px 100px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.25);display:grid;grid-template-rows:auto 1fr auto;overflow:hidden;position:relative;animation:pop .28s cubic-bezier(.2,.9,.25,1.1)}
+.qh{display:flex;align-items:center;padding:16px 10px 8px 22px;gap:6px}
+.qh b{font-size:22px;letter-spacing:-.02em;flex:1}.qh b span{font-weight:400;color:var(--sub);font-size:15px;margin-left:6px}
+.qh .lnk{color:var(--blue);font-size:15px;height:44px;padding:0 10px}
+.qwrap{position:relative;min-height:0}
+.qs{height:100%;overflow-y:auto;padding:0 34px 18px 10px;scrollbar-width:none;-webkit-mask:linear-gradient(transparent,#000 14px,#000 calc(100% - 28px),transparent);mask:linear-gradient(transparent,#000 14px,#000 calc(100% - 28px),transparent)}
+.qs::-webkit-scrollbar{display:none}
+.qg{position:sticky;top:0;z-index:1;font-size:13px;font-weight:600;color:var(--sub);padding:10px 14px 4px;background:linear-gradient(var(--glass) 70%,transparent)}
+.qr{display:flex;align-items:center;gap:14px;min-height:62px;padding:7px 12px;border-radius:16px;text-decoration:none;color:var(--ink);width:100%;text-align:left;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:transform .15s,background .15s}
+.qr:hover{background:var(--field)}.qr:active{transform:scale(.98);background:var(--field)}
+.qr .ico{width:42px;height:42px;border-radius:12px;font-size:18px}.qr .ico svg{width:20px;height:20px}
+.qr .tx b{font-size:16px}.qr .tx i{font-size:13px}
+.rail{position:absolute;right:4px;top:8px;bottom:12px;width:26px;display:flex;flex-direction:column;justify-content:center;align-items:center;touch-action:none;user-select:none;cursor:pointer}
+.rail span{font-size:11px;font-weight:600;color:var(--blue);line-height:1;padding:2px 0;flex:0 1 auto}
+.bub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:84px;height:84px;border-radius:22px;background:color-mix(in srgb,var(--ink) 80%,transparent);color:var(--win);font-size:40px;font-weight:700;display:none;place-items:center;pointer-events:none}
+.bub.on{display:grid}
+.qf{padding:10px 22px 14px;font-size:13px;color:var(--sub);text-align:center;border-top:1px solid var(--line)}
+.qe{display:grid;place-items:center;height:100%;text-align:center;color:var(--sub);padding:30px}.qe b{display:block;color:var(--ink);font-size:19px;margin-bottom:6px}
+.qm{position:absolute;z-index:3;min-width:200px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.3);padding:6px;display:none;animation:pop .18s ease}
+.qm.on{display:block}.qm button{display:flex;width:100%;align-items:center;height:44px;padding:0 14px;border-radius:10px;font-size:16px;text-align:left}
+.qm button:hover{background:var(--field)}.qm .red{color:#ff3b30}
+.bm{position:fixed;inset:0;z-index:30;display:none;place-items:center;padding:20px;background:rgba(0,0,0,.32);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.bm.on{display:grid;animation:fade .2s ease}
+@keyframes fade{from{opacity:0}}@keyframes pop{from{transform:scale(.96) translateY(8px);opacity:0}}
+.sheet{width:min(940px,100%);height:min(780px,100%);background:var(--win);border-radius:24px;box-shadow:0 30px 90px rgba(0,0,0,.35);border:1px solid var(--line);display:grid;grid-template-rows:auto auto 1fr auto;overflow:hidden;position:relative;animation:pop .25s cubic-bezier(.2,.8,.2,1)}
+.sh-h{display:flex;align-items:center;gap:12px;padding:20px 20px 10px 28px}
+.sh-h h2{margin:0;font-size:28px;letter-spacing:-.02em;flex:1;text-align:left}
+.sh-h small{white-space:nowrap;color:var(--sub);font-size:15px;font-weight:400;margin-left:8px}
+.pill{height:40px;padding:0 16px;border-radius:20px;background:var(--blue);color:#fff;font-weight:600;font-size:15px;white-space:nowrap}
+.pill.ghost{background:var(--field);color:var(--ink);font-weight:500}
+.sh-t{display:flex;gap:10px;padding:6px 20px 14px 28px;align-items:center}
+.sbox{flex:1;display:flex;align-items:center;gap:8px;height:46px;padding:0 14px;background:var(--field);border-radius:14px}
+.sbox svg{width:18px;height:18px;fill:none;stroke:var(--sub);stroke-width:2;flex:none}
+.sbox input{flex:1;border:0;outline:0;background:none;font-size:17px}
+.seg{display:flex;background:var(--field);border-radius:12px;padding:3px}
+.seg button{height:40px;padding:0 12px;border-radius:9px;font-size:14px;color:var(--sub)}
+.seg button.on{background:var(--win);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.sh-b{display:grid;grid-template-columns:220px minmax(0,1fr);border-top:1px solid var(--line);min-height:0}
+.side{padding:14px 12px;border-right:1px solid var(--line);overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.fb{display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;border-radius:12px;font-size:16px;text-align:left;width:100%}
+.fb span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fb em{font-style:normal;color:var(--sub);font-size:14px}
+.fb svg{width:20px;height:20px;flex:none;fill:none;stroke:var(--blue);stroke-width:1.8}
+.fb:hover{background:var(--field)}.fb.on{background:color-mix(in srgb,var(--blue) 14%,transparent);font-weight:600}
+.fb.add{color:var(--blue);margin-top:6px}
+.nf{display:flex;gap:6px;padding:4px}.nf input{flex:1;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--card);padding:0 10px;font-size:16px}
+.list{overflow-y:auto;padding:8px 16px 24px;scroll-behavior:smooth}
+.lh{display:flex;align-items:center;gap:8px;padding:10px 8px 6px;color:var(--sub);font-size:14px}
+.lh span{flex:1}.lh button{color:var(--blue);font-size:14px;height:36px;padding:0 8px}
+.row{display:flex;align-items:center;gap:4px;border-radius:16px;padding:4px}
+.row:hover,.row:focus-within{background:var(--field)}
+.row .m{flex:1;display:flex;align-items:center;gap:16px;min-height:68px;padding:6px 10px;text-decoration:none;color:var(--ink);text-align:left;border-radius:12px}
+.ico{width:48px;height:48px;border-radius:13px;flex:none;display:grid;place-items:center;color:#fff;font-weight:600;font-size:21px;box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 3px 10px rgba(0,0,0,.14)}
+.ico svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:2.2}
+.tx{flex:1;overflow:hidden}.tx b{display:block;font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx i{display:block;font-style:normal;color:var(--sub);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fl{font-size:12px;color:var(--sub);background:var(--field);border-radius:8px;padding:3px 8px;white-space:nowrap}
+.row .ib{opacity:.55}.row:hover .ib,.row .ib:focus-visible{opacity:1}
+.none{text-align:center;color:var(--sub);padding:60px 20px}.none b{display:block;color:var(--ink);font-size:20px;margin-bottom:6px}
+.sh-f{display:flex;align-items:center;gap:10px;padding:12px 20px 12px 28px;border-top:1px solid var(--line);font-size:13px;color:var(--sub)}
+.sh-f span{flex:1}.impb{color:var(--blue);font-size:14px;height:40px;padding:0 6px}.ip{margin:0;color:var(--sub);font-size:15px}.ip b,.steps b{color:var(--ink)}.steps{margin:0;padding-left:22px;display:grid;gap:10px;font-size:16px}.steps a{color:var(--blue)}#imp{z-index:35}.sh-f label{color:var(--blue);cursor:pointer;font-size:14px;height:40px;display:flex;align-items:center;padding:0 6px}
+.ed{position:absolute;inset:0;background:color-mix(in srgb,var(--win) 70%,transparent);backdrop-filter:blur(10px);display:none;place-items:center;padding:20px;z-index:2}
+.ed.on{display:grid}
+.ed form{width:min(440px,100%);background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px;box-shadow:var(--shadow);display:grid;gap:14px;animation:pop .2s ease}
+.ed h3{margin:0;font-size:22px}.ed label{display:grid;gap:6px;font-size:14px;color:var(--sub)}
+.ed input,.ed select{height:46px;border-radius:12px;border:1px solid var(--line);background:var(--win);padding:0 12px;font-size:16px;color:var(--ink)}
+.ed .btns{display:flex;gap:8px;justify-content:flex-end}.ed .del{margin-right:auto;color:#ff3b30;height:40px;padding:0 6px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:40;background:#1d1d1f;color:#f5f5f7;border-radius:16px;padding:6px 6px 6px 18px;display:none;align-items:center;gap:12px;font-size:15px;box-shadow:0 10px 30px rgba(0,0,0,.3);max-width:calc(100vw - 32px)}
+.toast.on{display:flex;animation:pop .2s ease}.toast button{color:#2997ff;font-weight:600;height:40px;padding:0 12px}
+.ico.lg{width:64px;height:64px;border-radius:16px;font-size:24px}.fav{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}button.fav{width:100%}
+.favhd{display:flex;align-items:baseline;justify-content:space-between;margin:44px 0 16px}.favhd h2{margin:0}
+.favhd button{color:var(--blue);font-size:15px;height:44px}
+@media(max-width:700px){
+ .bm{padding:0;place-items:end stretch}.sheet{height:94%;border-radius:22px 22px 0 0;width:100%}
+ .sh-b{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr}
+ .side{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:10px 16px;scrollbar-width:none}
+ .fb{width:auto;flex:none;height:38px;border-radius:19px;background:var(--field);font-size:15px}.fb svg,.fb em{display:none}
+ .nf{flex:none}.sh-h{padding:18px 16px 8px 20px}.sh-t{padding:4px 16px 12px 20px;flex-wrap:wrap}.seg{order:2}.sbox{flex-basis:100%}.sh-h h2{font-size:24px}
+ .list{padding:6px 8px 24px}.fl{display:none}.sh-f{padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+}
+@media(max-width:700px){
+ .shell{padding:0}.win{border-radius:0;border:0;min-height:100%}
+ .tabs{display:none}.chrome{order:2;border-bottom:0;border-top:1px solid var(--line);position:sticky;bottom:0;top:auto}
+ .bar{padding:8px 8px calc(8px + env(safe-area-inset-bottom))}.addr{order:-1;flex-basis:100%}
+ .bar{flex-wrap:wrap;justify-content:space-between}
+ .favs{grid-template-columns:repeat(4,minmax(0,1fr))}.fav b,.ico.lg{width:56px;height:56px;border-radius:14px}
+}
+@media(min-width:701px){.mob{display:none}}
+/* app-läge (riktig webbläsare) */
+.ico{position:relative;overflow:hidden}.ico img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:20%;background:#fff;border-radius:inherit}
+.prog{position:absolute;left:0;bottom:-1px;height:2.5px;width:0;background:linear-gradient(90deg,#5a7bff,#0071e3,#ffb35c);border-radius:2px;opacity:0;transition:width .25s ease,opacity .4s ease;z-index:6;pointer-events:none}
+.prog.on{opacity:1}
+.chrome{position:relative}
+html.app .shell{padding:0;max-width:none}html.app .win{border-radius:0;border:0;box-shadow:none;min-height:0}html.app .dots{display:none}
+html.app.mac .tabs{padding-left:84px}html.app .tabs{-webkit-app-region:drag}html.app .tabs button,html.app .tab{-webkit-app-region:no-drag}
+html.app .view.web{background:var(--win)}
+@media(max-width:700px){.prog{top:-1px;bottom:auto}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="shell"><div class="win">
+ <div class="chrome"><div class="prog" id="prog"></div>
+  <div class="tabs"><div class="dots" aria-hidden="true"><i></i><i></i><i></i></div><div class="tabrow" id="tabrow"></div>
+   <button class="ib" id="newtab" aria-label="Ny flik"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>
+  <div class="bar">
+   <button class="ib" id="back" aria-label="Bakåt"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+   <button class="ib" id="fwd" aria-label="Framåt"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+   <form class="addr" id="addrf"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+    <input id="addr" type="search" autocomplete="off" placeholder="Sök eller ange webbplats" aria-label="Adressfält"></form>
+   <button class="ib bmb" id="bmbtn" aria-label="Bokmärken – håll inne för att spara sidan" title="Tryck: bokmärken · Håll inne: spara sidan"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button>
+   <button class="ib" id="home" aria-label="Startsida"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg></button>
+   <button class="ib" id="tabsbtn" aria-label="Visa flikar"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="13" height="13" rx="3"/><path d="M8 4h9a3 3 0 0 1 3 3v9"/></svg></button>
+  </div>
+ </div>
+ <main class="view" id="view"></main>
+</div></div>
+<div class="ov" id="ov" role="dialog" aria-label="Flikar"><div class="ovg" id="ovg"></div>
+ <div class="ovbar"><button class="ib" id="ovnew" aria-label="Ny flik"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button><span id="ovcount" style="color:var(--sub);font-size:14px"></span><button class="done" id="ovdone">Klar</button></div></div>
+<div class="bm" id="bm" role="dialog" aria-modal="true" aria-label="Bokmärken"><div class="sheet">
+ <div class="sh-h"><h2>Bokmärken<small id="bmcount"></small></h2><button class="pill" id="bmadd">+ Lägg till</button><button class="ib" id="bmclose" aria-label="Stäng"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+ <div class="sh-t"><label class="sbox"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="bmq" type="search" placeholder="Sök bland bokmärken" autocomplete="off" aria-label="Sök bland bokmärken"></label>
+  <div class="seg" role="group" aria-label="Sortering"><button data-sort="new" class="on">Senaste</button><button data-sort="az">A–Ö</button><button data-sort="site">Webbplats</button></div></div>
+ <div class="sh-b"><nav class="side" id="bmside" aria-label="Mappar"></nav><div class="list" id="bmlist"></div></div>
+ <div class="sh-f"><span id="bmsync">Sparas på den här enheten</span><button class="impb" id="impopen">Importera från Google</button></div>
+ <div class="ed" id="ed"><form id="edf"><h3 id="edh">Nytt bokmärke</h3>
+  <label>Namn<input id="edt" required maxlength="140"></label>
+  <label>Adress<input id="edu" required placeholder="exempel.se" inputmode="url" autocomplete="off"></label>
+  <label>Mapp<select id="edfo"></select></label>
+  <div class="btns"><button type="button" class="del" id="eddel">Ta bort</button><button type="button" class="pill ghost" id="edc">Avbryt</button><button class="pill">Spara</button></div></form></div>
+</div></div>
+<div class="bm" id="imp" role="dialog" aria-modal="true" aria-label="Importera bokmärken"><div class="ed on" style="position:static;background:none;backdrop-filter:none;padding:0"><form onsubmit="return false" style="width:min(480px,100%)">
+ <h3>Importera från Google</h3>
+ <p class="ip">Chrome i mobilen kan inte exportera bokmärken, men Google Takeout kan. Det tar ett par minuter:</p>
+ <ol class="steps">
+  <li>Öppna <a href="https://takeout.google.com" target="_blank" rel="noopener">takeout.google.com</a> och logga in.</li>
+  <li>Tryck <b>Avmarkera alla</b>, bocka sedan bara i <b>Chrome</b>.</li>
+  <li>Tryck <b>Nästa steg</b> → <b>Skapa export</b>. Du får ett mejl när den är klar.</li>
+  <li>Ladda ner zip-filen från mejlet och välj den nedan. Lumen packar upp den själv.</li>
+ </ol>
+ <p class="ip">Har du en dator? Där går det snabbare: Chrome → Bokmärkshanteraren → ⋮ → <b>Exportera bokmärken</b>.</p>
+ <div class="btns"><button type="button" class="pill ghost" id="impc">Stäng</button><label class="pill" style="display:flex;align-items:center;cursor:pointer">Välj fil<input type="file" id="bmimp" accept=".html,.htm,.zip,text/html,application/zip" hidden></label></div>
+</form></div></div>
+<div class="ql" id="ql" role="dialog" aria-modal="true" aria-label="Bokmärken"><div class="qc" id="qc">
+ <div class="qh"><b>Bokmärken<span id="qcount"></span></b><button class="lnk" id="qmanage">Hantera</button><button class="ib" id="qclose" aria-label="Stäng"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+ <div class="qwrap"><div class="qs" id="qs"></div><div class="rail" id="rail" aria-hidden="true"></div><div class="bub" id="bub"></div></div>
+ <div class="qf">Håll inne bokmärkesknappen för att spara sidan · Håll inne en länk för fler val</div>
+ <div class="qm" id="qm" role="menu"><button data-qa="open">Öppna</button><button data-qa="edit">Ändra namn eller mapp</button><button data-qa="copy">Kopiera adress</button><button data-qa="del" class="red">Ta bort</button></div>
+</div></div>
+<div class="toast" id="toast" role="status"><span id="tmsg"></span><button id="tact"></button></div>
+<script>
+{
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const FAVS=[['Wikipedia','https://sv.wikipedia.org','W','#3a3a3c'],['SVT Nyheter','https://www.svt.se','S','#1f8a4c'],['SMHI','https://www.smhi.se','☁','#0a84ff'],['YouTube','https://www.youtube.com','▶','#ff3b30'],['GitHub','https://github.com','G','#24292f'],['Apple','https://www.apple.com','A','#8e8e93'],['Google Maps','https://maps.google.com','M','#34c759'],['Claude','https://claude.ai','C','#d97757']];
+let tabs=[],cur=0,uid=1,sample=null,recent=store.get('lumen-recent',[]);
+const newTab=()=>({id:uid++,hist:[{type:'start'}],idx:0});
+tabs=[newTab()];
+const tab=()=>tabs[cur],entry=()=>tab().hist[tab().idx];
+const isUrl=s=>/^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i.test(s.trim())&&!/\s/.test(s.trim());
+const title=e=>e.type==='start'?'Startsida':e.type==='search'?e.q:(e.title||e.host);
+const HOST=(()=>{const a=window.LumenHost,d=window.lumenHost;if(a)return{show:(t,u)=>a.show(String(t),u||''),close:t=>a.close(String(t)),back:t=>a.back(String(t)),fwd:t=>a.fwd(String(t)),reload:t=>a.reload(String(t)),layout:(x,y,w,h)=>a.layout(x,y,w,h),visible:b=>a.visible(!!b),platform:'android'};return d||null})();
+if(HOST){document.documentElement.classList.add('app');if(HOST.platform==='darwin')document.documentElement.classList.add('mac')}
+const ENGINE='https://duckduckgo.com/?q=';
+function go(e){const t=tab();t.hist=t.hist.slice(0,t.idx+1);t.hist.push(e);t.idx++;render()}
+function submit(raw){const s=raw.trim();if(!s)return;
+ if(isUrl(s)){const url=/^https?:\/\//i.test(s)?s:'https://'+s;let host=url;try{host=new URL(url).hostname}catch(e){}go({type:'url',url,host})}
+ else{recent=[s,...recent.filter(r=>r!==s)].slice(0,8);store.set('lumen-recent',recent);if(HOST)go({type:'url',url:ENGINE+encodeURIComponent(s),host:'Sök: '+s,title:s});else go({type:'search',q:s})}}
+function renderTabs(){
+ $('tabrow').innerHTML=tabs.map((t,i)=>`<div class="tab${i===cur?' on':''}" data-i="${i}" role="button" tabindex="0"><span>${esc(title(t.hist[t.idx]))}</span>${tabs.length>1?`<button class="x" data-x="${i}" aria-label="Stäng flik">×</button>`:''}</div>`).join('');
+ $('ovg').innerHTML=tabs.map((t,i)=>`<button class="card${i===cur?' on':''}" data-i="${i}"><strong>${esc(title(t.hist[t.idx]))}</strong><small>${t.hist[t.idx].type==='search'?'Lumen Sök':t.hist[t.idx].type==='url'?'Webbplats':'Ny flik'}</small></button>`).join('');
+ $('ovcount').textContent=tabs.length+(tabs.length===1?' flik':' flikar');
+ const f=findBm(entry());$('bmbtn').classList.toggle('on',!!f);
+ const ue=entry().type==='url';$('back').disabled=tab().idx===0&&!(ue&&tab().nb);$('fwd').disabled=tab().idx>=tab().hist.length-1&&!(ue&&tab().nf)}
+function render(){const e=entry();renderTabs();$('view').classList.remove('web');
+ $('addr').value=e.type==='search'?e.q:e.type==='url'?e.url:'';
+ const v=$('view');v.scrollTop=0;
+ if(e.type==='start')v.innerHTML=startHTML();
+ else if(e.type==='url'&&HOST){v.innerHTML='';v.classList.add('web')}
+ else if(e.type==='url')v.innerHTML=`<div class="page"><div class="globe"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></div><h1>${esc(e.host)}</h1><p class="lead">Webbplatser öppnas säkert i ett eget fönster utanför Lumen.</p><a class="open" href="${esc(e.url)}" target="_blank" rel="noopener">Öppna ${esc(e.host)}</a></div>`;
+ else renderSearch(e);
+ appSync()}
+function startHTML(){return `<div class="start">
+ <img class="logo" src="lumen-icon-512.png" alt="Lumen" width="96" height="96">
+ <h1 class="wmh"><svg class="wm" xmlns="http://www.w3.org/2000/svg" viewBox="-60 -330 6414 1900" role="img" aria-label="Lumen"><g>
+<defs>
+<radialGradient id="wms" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffe3a3"/><stop offset=".22" stop-color="#ffc56e" stop-opacity=".7"/><stop offset=".55" stop-color="#ffab55" stop-opacity=".22"/><stop offset="1" stop-color="#ff9a4a" stop-opacity="0"/></radialGradient>
+<linearGradient id="wmr" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffb760" stop-opacity="0"/><stop offset=".5" stop-color="#ffcf80"/><stop offset="1" stop-color="#ffb760" stop-opacity="0"/></linearGradient>
+</defs>
+<mask id="wmk" maskUnits="userSpaceOnUse" x="-500" y="-800" width="7154" height="3000"><rect x="-500" y="-800" width="7154" height="3000" fill="#fff"/><circle cx="5929" cy="548" r="118" fill="#000"/></mask>
+<g mask="url(#wmk)"><g transform="translate(0,1490) scale(1,-1)" fill="currentColor" stroke="currentColor" stroke-width="22" stroke-linejoin="round"><path transform="translate(0,0)" d="M124 0H1079V229H388V1490H124Z"/><path transform="translate(1016,0)" d="M488 -21C634 -21 741 43 813 162V0H1061V1056H808V459C808 279 710 200 577 200C442 200 364 281 364 436V1056H112V396C112 125 267 -21 488 -21Z"/><path transform="translate(2149,0)" d="M112 0H364V630C364 781 461 863 575 863C687 863 767 788 767 673V0H1012V648C1012 774 1091 863 1219 863C1327 863 1415 801 1415 661V0H1668V697C1668 945 1514 1077 1314 1077C1160 1077 1034 999 978 877C934 998 817 1077 674 1077C541 1077 420 1009 356 873V1056H112Z"/><path transform="translate(3888,0)" d="M578 -24C825 -24 1021 119 1061 326H825C796 236 711 175 584 175C414 175 316 290 310 462H1074V531C1074 855 872 1080 568 1080C272 1080 63 848 63 527C63 207 261 -24 578 -24ZM312 636C329 787 426 880 572 880C718 880 816 787 832 636Z"/><path transform="translate(4981,0)" d="M364 597C364 777 463 856 595 856C730 856 808 775 808 620V0H1061V660C1061 931 905 1077 684 1077C539 1077 432 1013 360 894V1056H112V0H364Z"/></g></g>
+<g transform="translate(5929,548)">
+<circle r="210" fill="url(#wms)"/>
+<rect x="-560" y="-9" width="1120" height="18" rx="9" fill="url(#wmr)" transform="rotate(-14)"/>
+<rect x="-300" y="-7" width="600" height="14" rx="7" fill="url(#wmr)" transform="rotate(76)"/>
+<circle r="50" fill="#ffc861"/><circle r="30" fill="#fffaf0"/>
+</g></g></svg></h1><p class="lead">Webbläsaren och sökmotorn som svarar direkt.</p>
+ <form class="big" id="bigf"><input id="bigq" type="search" placeholder="Vad vill du veta?" aria-label="Sök" autocomplete="off"><button class="go">Sök</button></form>
+ ${favsHTML()}
+ <h2>Senaste sökningar</h2>${recent.length?`<div class="recent">${recent.map(r=>`<button class="chip" data-q="${esc(r)}">${esc(r)}</button>`).join('')}</div>`:'<p class="empty">Inga sökningar ännu – dina sökningar sparas bara i den här webbläsaren.</p>'}
+ <div class="priv"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg><p><strong>Integritet först</strong>Lumen laddar inga spårare eller annonser. Historiken stannar på din enhet.</p></div></div>`}
+async function renderSearch(e){const v=$('view'),q=e.q,enc=encodeURIComponent(q);
+ const extra=`<h2>Fortsätt söka</h2><div class="more"><a class="ext" target="_blank" rel="noopener" href="https://duckduckgo.com/?q=${enc}">DuckDuckGo</a><a class="ext" target="_blank" rel="noopener" href="https://www.google.com/search?q=${enc}">Google</a><a class="ext" target="_blank" rel="noopener" href="https://sv.wikipedia.org/w/index.php?search=${enc}">Wikipedia</a></div>`;
+ const paint=d=>{v.innerHTML=`<div class="res"><div class="ans"><div class="tag">✦ Lumen-svar</div>${d?`<p>${esc(d.answer)}</p><p class="note">Svaret skrivs av AI utifrån allmän kunskap och kan vara inaktuellt – kontrollera källorna.</p>`:'<div class="sk" style="width:92%"></div><div class="sk" style="width:80%"></div><div class="sk" style="width:60%"></div>'}</div>
+  <h2>Webbplatser</h2>${d?(d.results||[]).filter(r=>/^https:\/\//.test(r.url||'')).map(r=>`<div class="hit"><a href="${esc(r.url)}" target="_blank" rel="noopener"><div class="u">${esc(r.url.replace(/^https:\/\//,''))}</div><h3>${esc(r.title)}</h3></a><p>${esc(r.snippet)}</p></div>`).join(''):[1,2,3].map(()=>'<div class="hit"><div class="sk" style="width:30%"></div><div class="sk" style="width:65%;height:18px"></div><div class="sk"></div></div>').join('')}
+  ${d&&d.related?.length?`<h2>Relaterade sökningar</h2><div class="recent">${d.related.slice(0,5).map(r=>`<button class="chip" data-q="${esc(r)}">${esc(r)}</button>`).join('')}</div>`:''}${extra}</div>`};
+ if(e.data){paint(e.data);return}
+ if(!sample){v.innerHTML=`<div class="res"><div class="ans"><div class="tag">✦ Lumen-svar</div><p>Direktsvar är inte tillgängliga i den här vyn. Öppna sidan på claude.ai för att använda Lumen Sök.</p></div>${extra}</div>`;return}
+ paint(null);
+ try{const d=await sample.json(`Du är sökmotorn Lumen. Användaren söker: "${q}".
+Svara på svenska med ENDAST JSON i formatet:
+{"answer":"ett tydligt direktsvar på 2–4 meningar","results":[{"title":"sidans titel","url":"https://…","snippet":"en mening om vad sidan innehåller"}],"related":["4 relaterade sökningar"]}
+results: 4–6 riktiga, välkända webbsidor som garanterat finns (gärna startsidor eller stabila adresser). Hellre färre än påhittade. Endast https-adresser.`,{modelTier:'quick'});
+  e.data={answer:String(d?.answer||''),results:Array.isArray(d?.results)?d.results.map(r=>({title:String(r.title||''),url:String(r.url||''),snippet:String(r.snippet||'')})):[],related:Array.isArray(d?.related)?d.related.map(String):[]};
+  if(entry()===e)paint(e.data)}
+ catch(err){if(entry()!==e)return;v.innerHTML=`<div class="res"><div class="ans"><div class="tag">✦ Lumen-svar</div><p>${err?.code==='rate_limited'?'För många sökningar just nu – vänta en stund och försök igen.':'Kunde inte hämta svar just nu.'}</p></div>${extra}</div>`}}
+$('addrf').addEventListener('submit',ev=>{ev.preventDefault();$('addr').blur();submit($('addr').value)});
+$('view').addEventListener('submit',ev=>{if(ev.target.id==='bigf'){ev.preventDefault();submit($('bigq').value)}});
+document.addEventListener('click',ev=>{const c=ev.target.closest('[data-q]');if(c){submit(c.dataset.q);return}
+ const x=ev.target.closest('[data-x]');if(x){ev.stopPropagation();const [ct]=tabs.splice(+x.dataset.x,1);if(HOST)HOST.close(ct.id);cur=Math.min(cur,tabs.length-1);render();return}
+ const t=ev.target.closest('[data-i]');if(t){cur=+t.dataset.i;$('ov').classList.remove('on');render()}});
+$('back').onclick=()=>{goBack()};
+$('fwd').onclick=()=>{const t=tab();if(HOST&&entry().type==='url'&&t.nf)HOST.fwd(t.id);else if(t.idx<t.hist.length-1){t.idx++;render()}};
+$('home').onclick=()=>go({type:'start'});
+const add=()=>{tabs.push(newTab());cur=tabs.length-1;$('ov').classList.remove('on');render();setTimeout(()=>$('bigq')?.focus(),50)};
+$('newtab').onclick=add;$('ovnew').onclick=add;
+$('tabsbtn').onclick=()=>{renderTabs();$('ov').classList.add('on')};
+$('ovdone').onclick=()=>$('ov').classList.remove('on');
+document.addEventListener('keydown',ev=>{const k=ev.key.toLowerCase(),mod=ev.metaKey||ev.ctrlKey;
+ if(ev.key==='Escape'){if($('qm').classList.contains('on'))$('qm').classList.remove('on');else if($('ql').classList.contains('on'))closeQl();else if($('imp').classList.contains('on'))$('imp').classList.remove('on');else if($('ed').classList.contains('on'))closeEd();else if($('bm').classList.contains('on'))closeBm();else $('ov').classList.remove('on')}
+ if(mod&&k==='t'){ev.preventDefault();add()}if(mod&&k==='b'){ev.preventDefault();openQl()}if(mod&&k==='d'){ev.preventDefault();addCurrent()}});
+
+/* ===== Bokmärken ===== */
+const LS='lumen-bm';
+const clean=d=>{const o={folders:[],items:[]};
+ if(d&&Array.isArray(d.folders))o.folders=d.folders.filter(f=>f&&f.id&&f.name).map(f=>({id:String(f.id),name:String(f.name).slice(0,60)}));
+ if(!o.folders.some(f=>f.id==='fav'))o.folders.unshift({id:'fav',name:'Favoriter'});
+ if(d&&Array.isArray(d.items))o.items=d.items.filter(i=>i&&i.id&&(i.url||i.q)).map(i=>({id:String(i.id),title:String(i.title||'').slice(0,140),url:i.url?String(i.url):'',q:i.q?String(i.q):'',folder:String(i.folder||''),ts:+i.ts||0}));
+ return o};
+let bm=clean(store.get(LS,null)),bmF='all',bmSort='new',editing=null,remote=null,writing=false,dirty=false,saveT=0;
+const rid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+const hostOf=u=>{try{return new URL(u).hostname.replace(/^www\./,'')}catch(e){return u}};
+const normUrl=s=>{s=s.trim();if(!s)return '';if(/^http:\/\//i.test(s))s='https://'+s.slice(7);if(!/^https:\/\//i.test(s))s='https://'+s;return s};
+const hue=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h};
+const icon=i=>{if(i.q)return `<span class="ico" style="background:linear-gradient(150deg,#5ac8fa,#0071e3)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></span>`;
+ const hs=hostOf(i.url),h=hue(hs),l=(i.title||hs).trim().charAt(0).toUpperCase()||'•';
+ return `<span class="ico" style="background:linear-gradient(150deg,hsl(${h} 72% 58%),hsl(${(h+28)%360} 68% 42%))">${esc(l)}<img src="https://icons.duckduckgo.com/ip3/${encodeURIComponent(hs)}.ico" alt="" loading="lazy" onerror="this.remove()"></span>`};
+const fname=id=>bm.folders.find(f=>f.id===id)?.name||'Osorterade';
+function findBm(e){if(e.type==='url'){const u=normUrl(e.url);return bm.items.find(i=>i.url===u)}if(e.type==='search')return bm.items.find(i=>i.q===e.q);return null}
+function save(){store.set(LS,bm);renderTabs();if(entry().type==='start')$('view').innerHTML=startHTML();if($('bm').classList.contains('on'))renderBm();if($('ql').classList.contains('on'))renderQl();
+ if(!remote)return;clearTimeout(saveT);saveT=setTimeout(flush,400)}
+async function flush(){if(writing){dirty=true;return}writing=true;dirty=false;
+ try{await remote.set(JSON.parse(JSON.stringify(bm)));$('bmsync').textContent='Synkas med ditt konto – finns på alla dina enheter'}
+ catch(e){$('bmsync').textContent=e?.code==='quota_exceeded'?'Lagringen är full – ta bort några bokmärken':'Kunde inte synka just nu – sparat på enheten'}
+ writing=false;if(dirty)flush()}
+function favsHTML(){const f=bm.items.filter(i=>i.folder==='fav').slice(0,12);
+ const tile=i=>{const ic=icon(i).replace('class="ico"','class="ico lg"'),nm=esc(i.title||hostOf(i.url));return i.q?`<button class="fav" data-q="${esc(i.q)}">${ic}${nm}</button>`:`<a class="fav" href="${esc(i.url)}" target="_blank" rel="noopener">${ic}${nm}</a>`};
+ if(f.length)return `<div class="favhd"><h2>Favoriter</h2><button data-openbm="1">Alla bokmärken (${bm.items.length})</button></div><div class="favs">${f.map(tile).join('')}</div>`;
+ return `<div class="favhd"><h2>Förslag</h2><button id="addsug">Spara som favoriter</button></div><div class="favs">${FAVS.map(([n,u])=>`<a class="fav" href="${u}" target="_blank" rel="noopener">${icon({title:n,url:u}).replace('class="ico"','class="ico lg"')}${n}</a>`).join('')}</div>`}
+function openBm(){$('bm').classList.add('on');renderBm();setTimeout(()=>$('bmq').focus(),60)}
+function closeBm(){$('bm').classList.remove('on');closeEd()}
+function renderBm(){const counts={all:bm.items.length,'':0};for(const i of bm.items)counts[i.folder]=(counts[i.folder]||0)+1;
+ const fsvg='<svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+ const btn=(id,name,svg)=>`<button class="fb${bmF===id?' on':''}" data-f="${esc(id)}">${svg}<span>${esc(name)}</span><em>${counts[id]||0}</em></button>`;
+ $('bmside').innerHTML=btn('all','Alla','<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>')+bm.folders.map(f=>btn(f.id,f.name,f.id==='fav'?'<svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8-4.2-4.1 5.9-.9z"/></svg>':fsvg)).join('')
+  +(counts['']?btn('','Osorterade',fsvg):'')+`<form class="nf" id="nff" hidden><input id="nfn" placeholder="Mappnamn" maxlength="60" aria-label="Mappnamn"><button class="pill">OK</button></form><button class="fb add" id="nfb">${fsvg}<span>Ny mapp</span></button>`;
+ $('bmcount').textContent=bm.items.length?bm.items.length+' st':'';
+ renderList()}
+function renderList(){const q=$('bmq').value.trim().toLowerCase();
+ let it=bm.items.filter(i=>(bmF==='all'||i.folder===bmF)&&(!q||(i.title+' '+i.url+' '+i.q+' '+fname(i.folder)).toLowerCase().includes(q)));
+ if(bmSort==='az')it.sort((a,b)=>a.title.localeCompare(b.title,'sv'));else if(bmSort==='site')it.sort((a,b)=>(hostOf(a.url)||'~').localeCompare(hostOf(b.url)||'~')||a.title.localeCompare(b.title,'sv'));else it.sort((a,b)=>b.ts-a.ts);
+ const custom=bm.folders.find(f=>f.id===bmF&&f.id!=='fav');
+ const head=`<div class="lh"><span>${bmF==='all'?'Alla bokmärken':esc(fname(bmF))} · ${it.length}</span>${custom?`<button data-ren="${esc(custom.id)}">Byt namn</button><button data-rmf="${esc(custom.id)}">Ta bort mapp</button>`:''}</div>`;
+ if(!it.length){$('bmlist').innerHTML=head+`<div class="none"><b>${q?'Inga träffar':'Inga bokmärken här'}</b>${q?'Prova ett annat ord.':'Tryck på stjärnan i verktygsfältet eller på ”Lägg till”.'}</div>`;return}
+ const edit='<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',del='<svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg>';
+ $('bmlist').innerHTML=head+it.map(i=>{const inner=`${icon(i)}<span class="tx"><b>${esc(i.title||hostOf(i.url))}</b><i>${i.q?'Sökning i Lumen':esc(hostOf(i.url))}</i></span>${bmF==='all'?`<span class="fl">${esc(fname(i.folder))}</span>`:''}`;
+  return `<div class="row">${i.q?`<button class="m" data-runq="${esc(i.id)}">${inner}</button>`:`<a class="m" href="${esc(i.url)}" target="_blank" rel="noopener">${inner}</a>`}<button class="ib" data-edit="${esc(i.id)}" aria-label="Ändra">${edit}</button><button class="ib" data-del="${esc(i.id)}" aria-label="Ta bort">${del}</button></div>`}).join('')}
+function openEd(item){editing=item;const isNew=!bm.items.includes(item);
+ $('edh').textContent=isNew?'Nytt bokmärke':'Ändra bokmärke';$('edt').value=item.title||'';
+ $('edu').value=item.q||item.url||'';$('edu').previousSibling.textContent=item.q?'Sökning':'Adress';
+ $('edfo').innerHTML=bm.folders.map(f=>`<option value="${esc(f.id)}">${esc(f.name)}</option>`).join('')+'<option value="">Osorterade</option>';
+ $('edfo').value=item.folder??(bmF!=='all'?bmF:'fav');$('eddel').hidden=isNew;
+ if(!$('bm').classList.contains('on'))openBm();$('ed').classList.add('on');setTimeout(()=>$('edt').focus(),60)}
+function closeEd(){$('ed').classList.remove('on');editing=null}
+let toastT=0,undo=null;
+function toast(msg,act,fn){$('tmsg').textContent=msg;$('tact').textContent=act||'';$('tact').hidden=!act;undo=fn||null;$('toast').classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>$('toast').classList.remove('on'),4500)}
+$('tact').onclick=()=>{$('toast').classList.remove('on');undo&&undo()};
+function removeItem(id){const i=bm.items.findIndex(x=>x.id===id);if(i<0)return;const [it]=bm.items.splice(i,1);save();toast('”'+(it.title||hostOf(it.url))+'” togs bort','Ångra',()=>{bm.items.splice(i,0,it);save()})}
+$('edf').addEventListener('submit',ev=>{ev.preventDefault();if(!editing)return;const v=$('edu').value.trim();if(!v)return;
+ const it=editing;it.title=$('edt').value.trim()||v;if(it.q)it.q=v;else it.url=normUrl(v);it.folder=$('edfo').value;
+ if(!bm.items.includes(it)){it.ts=Date.now();bm.items.push(it)}closeEd();save()});
+$('edc').onclick=closeEd;$('eddel').onclick=()=>{const id=editing?.id;closeEd();if(id)removeItem(id)};
+function addCurrent(){const e=entry(),b=$('bmbtn');b.classList.remove('pulse');void b.offsetWidth;b.classList.add('pulse');
+ if(e.type==='start'){openEd({id:rid(),title:'',url:'',q:'',folder:'fav'});return}
+ const f=findBm(e);if(f){toast('Redan sparad','Ändra',()=>openEd(f));return}
+ const it={id:rid(),title:e.type==='search'?e.q:hostOf(e.url),url:e.type==='url'?normUrl(e.url):'',q:e.type==='search'?e.q:'',folder:'fav',ts:Date.now()};
+ bm.items.push(it);save();toast('Sparat i Favoriter','Ändra',()=>openEd(it))}
+let holdT=0,held=false,hx=0,hy=0;const bb=$('bmbtn');
+bb.addEventListener('pointerdown',ev=>{held=false;hx=ev.clientX;hy=ev.clientY;bb.classList.add('hold');clearTimeout(holdT);holdT=setTimeout(()=>{held=true;bb.classList.remove('hold');navigator.vibrate?.(15);addCurrent()},520)});
+const endHold=()=>{clearTimeout(holdT);bb.classList.remove('hold')};
+bb.addEventListener('pointermove',ev=>{if(Math.abs(ev.clientX-hx)+Math.abs(ev.clientY-hy)>12)endHold()});
+['pointerup','pointercancel','pointerleave'].forEach(t=>bb.addEventListener(t,endHold));
+bb.addEventListener('contextmenu',ev=>ev.preventDefault());
+bb.addEventListener('click',ev=>{if(held){held=false;ev.preventDefault();return}openQl()});
+/* snabblista */
+const sortKey=i=>(i.title||hostOf(i.url)).trim();
+const letter=i=>{const c=sortKey(i).charAt(0).toUpperCase();return /[A-ZÅÄÖÆØÜ]/.test(c)?c:'#'};
+let qItem=null;
+function openQl(){closeBm();renderQl();$('ql').classList.add('on');$('qs').scrollTop=0}
+function closeQl(){$('ql').classList.remove('on');$('qm').classList.remove('on')}
+function renderQl(){const it=[...bm.items].sort((a,b)=>sortKey(a).localeCompare(sortKey(b),'sv',{sensitivity:'base'}));
+ $('qcount').textContent=it.length?it.length:'';
+ if(!it.length){$('qs').innerHTML='<div class="qe"><div><b>Inga bokmärken ännu</b>Håll inne bokmärkesknappen för att spara sidan du är på.</div></div>';$('rail').innerHTML='';return}
+ const groups=[];for(const i of it){const l=letter(i);let g=groups[groups.length-1];if(!g||g.l!==l)groups.push(g={l,items:[]});g.items.push(i)}
+ if(groups[0].l==='#'&&groups.length>1)groups.push(groups.shift());
+ $('qs').innerHTML=groups.map(g=>`<section id="qg-${g.l==='#'?'hash':g.l}" data-l="${esc(g.l)}"><div class="qg">${esc(g.l)}</div>${g.items.map(i=>{const inner=`${icon(i)}<span class="tx"><b>${esc(i.title||hostOf(i.url))}</b><i>${i.q?'Sökning i Lumen':esc(hostOf(i.url))}</i></span>`;
+  return i.q?`<button class="qr" data-qid="${esc(i.id)}">${inner}</button>`:`<a class="qr" data-qid="${esc(i.id)}" href="${esc(i.url)}" target="_blank" rel="noopener">${inner}</a>`}).join('')}</section>`).join('');
+ $('rail').innerHTML=groups.length>3?groups.map(g=>`<span data-l="${esc(g.l)}">${esc(g.l)}</span>`).join(''):''}
+let bubT=0;
+function scrub(ev){const el=document.elementFromPoint(ev.clientX,ev.clientY);const l=el?.dataset?.l;if(!l||el.parentElement!==$('rail'))return;
+ const sec=$('qs').querySelector(`section[data-l="${CSS.escape(l)}"]`);if(sec)$('qs').scrollTop=sec.offsetTop;
+ $('bub').textContent=l;$('bub').classList.add('on');clearTimeout(bubT);bubT=setTimeout(()=>$('bub').classList.remove('on'),600)}
+let scrubbing=false;
+$('rail').addEventListener('pointerdown',ev=>{scrubbing=true;try{$('rail').setPointerCapture(ev.pointerId)}catch(e){}scrub(ev)});
+$('rail').addEventListener('pointermove',ev=>{if(scrubbing)scrub(ev)});
+$('rail').addEventListener('pointerup',()=>scrubbing=false);$('rail').addEventListener('pointercancel',()=>scrubbing=false);
+let lp=0,lpX=0,lpY=0,lpFired=false;
+function showMenu(row){qItem=bm.items.find(i=>i.id===row.dataset.qid);if(!qItem)return;const m=$('qm'),c=$('qc').getBoundingClientRect(),r=row.getBoundingClientRect();
+ m.querySelector('[data-qa=copy]').hidden=!!qItem.q;m.classList.add('on');
+ const top=Math.min(r.bottom-c.top+4,c.height-m.offsetHeight-12);m.style.top=Math.max(12,top)+'px';m.style.left=Math.max(12,Math.min(r.left-c.left+56,c.width-m.offsetWidth-12))+'px';
+ navigator.vibrate?.(10)}
+$('qs').addEventListener('pointerdown',ev=>{const row=ev.target.closest('.qr');if(!row)return;lpFired=false;lpX=ev.clientX;lpY=ev.clientY;
+ clearTimeout(lp);lp=setTimeout(()=>{lpFired=true;showMenu(row)},480)});
+$('qs').addEventListener('pointermove',ev=>{if(Math.abs(ev.clientX-lpX)+Math.abs(ev.clientY-lpY)>10)clearTimeout(lp)});
+['pointerup','pointercancel','scroll'].forEach(t=>$('qs').addEventListener(t,()=>clearTimeout(lp)));
+$('qs').addEventListener('contextmenu',ev=>{const row=ev.target.closest('.qr');if(!row)return;ev.preventDefault();lpFired=true;showMenu(row)});
+$('qs').addEventListener('click',ev=>{const row=ev.target.closest('.qr');if(!row)return;
+ if(lpFired){ev.preventDefault();lpFired=false;return}if($('qm').classList.contains('on')){ev.preventDefault();$('qm').classList.remove('on');return}
+ const it=bm.items.find(i=>i.id===row.dataset.qid);if(it?.q){closeQl();submit(it.q)}});
+$('qm').addEventListener('click',async ev=>{const a=ev.target.closest('[data-qa]')?.dataset.qa;if(!a||!qItem)return;$('qm').classList.remove('on');const it=qItem;
+ if(a==='open'){if(it.q){closeQl();submit(it.q)}else{const l=$('qs').querySelector(`a[data-qid="${CSS.escape(it.id)}"]`);l?.click()}}
+ else if(a==='edit'){closeQl();openEd(it)}
+ else if(a==='copy'){try{await navigator.clipboard.writeText(it.url);toast('Adressen kopierades')}catch(e){toast(it.url)}}
+ else if(a==='del'){removeItem(it.id);renderQl()}});
+$('qc').addEventListener('click',ev=>{if(!ev.target.closest('#qm')&&!ev.target.closest('.qr'))$('qm').classList.remove('on')});
+$('ql').addEventListener('click',ev=>{if(ev.target===$('ql'))closeQl()});
+$('qclose').onclick=closeQl;$('qmanage').onclick=()=>{closeQl();openBm()};$('bmclose').onclick=closeBm;
+$('bmadd').onclick=()=>openEd({id:rid(),title:'',url:'',q:'',folder:bmF==='all'||bmF===''?'fav':bmF});
+$('bm').addEventListener('click',ev=>{if(ev.target===$('bm'))closeBm()});
+$('bmq').addEventListener('input',renderList);
+document.querySelectorAll('[data-sort]').forEach(b=>b.onclick=()=>{bmSort=b.dataset.sort;document.querySelectorAll('[data-sort]').forEach(x=>x.classList.toggle('on',x===b));renderList()});
+$('bmside').addEventListener('click',ev=>{if(ev.target.closest('#nfb')){$('nff').hidden=false;$('nfb').hidden=true;$('nfn').focus();return}
+ const b=ev.target.closest('[data-f]');if(b){bmF=b.dataset.f;renderBm()}});
+$('bmside').addEventListener('submit',ev=>{ev.preventDefault();const n=$('nfn').value.trim();if(!n){renderBm();return}const f={id:rid(),name:n};bm.folders.push(f);bmF=f.id;save()});
+$('bmlist').addEventListener('click',ev=>{const t=ev.target.closest('button');if(!t)return;const d=t.dataset;
+ if(d.edit)openEd(bm.items.find(i=>i.id===d.edit));
+ else if(d.del)removeItem(d.del);
+ else if(d.runq){const it=bm.items.find(i=>i.id===d.runq);closeBm();submit(it.q)}
+ else if(d.ren){const lh=t.parentElement,f=bm.folders.find(x=>x.id===d.ren);lh.innerHTML=`<form class="nf" id="renf" style="flex:1"><input id="renn" maxlength="60" aria-label="Nytt namn"><button class="pill">Spara</button></form>`;$('renn').value=f.name;$('renn').focus();
+  $('renf').onsubmit=e=>{e.preventDefault();const n=$('renn').value.trim();if(n)f.name=n;save()}}
+ else if(d.rmf){const fi=bm.folders.findIndex(x=>x.id===d.rmf),f=bm.folders[fi],moved=bm.items.filter(i=>i.folder===f.id);
+  bm.folders.splice(fi,1);moved.forEach(i=>i.folder='');bmF='all';save();toast('Mappen ”'+f.name+'” togs bort','Ångra',()=>{bm.folders.splice(fi,0,f);moved.forEach(i=>i.folder=f.id);bmF=f.id;save()})}});
+$('view').addEventListener('click',ev=>{if(ev.target.closest('[data-openbm]'))openQl();
+ if(ev.target.closest('#addsug')){FAVS.forEach(([n,u],k)=>{if(!bm.items.some(i=>i.url===u))bm.items.push({id:rid(),title:n,url:u,q:'',folder:'fav',ts:Date.now()-k})});save()}});
+$('impopen').onclick=()=>$('imp').classList.add('on');$('impc').onclick=()=>$('imp').classList.remove('on');
+$('imp').addEventListener('click',ev=>{if(ev.target===$('imp'))$('imp').classList.remove('on')});
+$('bmimp').addEventListener('change',async ev=>{const file=ev.target.files[0];ev.target.value='';if(!file)return;
+ let html='';
+ try{if(/\.zip$/i.test(file.name)||/zip/.test(file.type)){if(!window.JSZip){toast('Kunde inte öppna zip-filen här – packa upp den och välj Bookmarks.html');return}
+   const z=await JSZip.loadAsync(file);const names=Object.keys(z.files).filter(n=>!z.files[n].dir&&/\.html?$/i.test(n));
+   const pick=names.find(n=>/(bookmarks|bokm(ä|#u00e4)rken|lesezeichen|favoritter|bokmerker|kirjanmerkit|marque-pages|favoritos|segnalibri|bladwijzers)\.html?$/i.test(n))||names.find(n=>/chrome/i.test(n)&&!/(l(ä|#u00e4)slista|reading)/i.test(n));
+   if(!pick){toast('Hittade ingen bokmärkesfil i zip-filen – bockade du i Chrome?');return}html=await z.files[pick].async('string')}
+  else html=await file.text()}catch(e){toast('Filen kunde inte läsas');return}
+ $('imp').classList.remove('on');
+ const doc=new DOMParser().parseFromString(html,'text/html');let n=0;const known=new Set(bm.items.map(i=>i.url));
+ for(const a of doc.querySelectorAll('a[href]')){const raw=a.getAttribute('href')||'';if(!/^https?:\/\//i.test(raw))continue;const url=normUrl(raw);if(known.has(url))continue;known.add(url);
+  const dl=a.closest('dl'),h=dl&&(dl.parentElement?.querySelector(':scope>h3')||(dl.previousElementSibling?.tagName==='H3'?dl.previousElementSibling:null));
+  let fid='';const nm=h?.textContent.trim();if(nm){let f=bm.folders.find(x=>x.name===nm);if(!f){f={id:rid(),name:nm.slice(0,60)};bm.folders.push(f)}fid=f.id}
+  bm.items.push({id:rid(),title:(a.textContent.trim()||hostOf(url)).slice(0,140),url,q:'',folder:fid,ts:Date.now()-n});n++}
+ bmF='all';save();toast(n?`Importerade ${n} bokmärken`:'Hittade inga nya bokmärken i filen')});
+(async()=>{try{const [db,user]=await Promise.all([window.claude?.use?.('db'),window.claude?.use?.('user')]);if(!db||!user)return;
+ const id=await user.id();if(!id)return;const ref=db.doc('data/users/'+id+'/bookmarks');
+ const snap=await Promise.race([ref.get(),new Promise((_,r)=>setTimeout(()=>r({code:'timeout'}),10000))]);remote=ref;
+ if(snap.exists){const r=clean(snap.data());const ids=new Set(r.items.map(i=>i.id));bm.items.forEach(i=>{if(!ids.has(i.id)&&!r.items.some(x=>x.url&&x.url===i.url))r.items.push(i)});
+  bm.folders.forEach(f=>{if(!r.folders.some(x=>x.id===f.id))r.folders.push(f)});const changed=r.items.length!==clean(snap.data()).items.length;bm=r;store.set(LS,bm);renderTabs();if(entry().type==='start')$('view').innerHTML=startHTML();if($('bm').classList.contains('on'))renderBm();if(changed)flush()}
+ else if(bm.items.length)flush();
+ $('bmsync').textContent='Synkas med ditt konto – finns på alla dina enheter'}catch(e){}})();
+/* ===== App-läge: sidor öppnas i Lumens egen webbmotor ===== */
+function goBack(){const t=tab();if(HOST&&entry().type==='url'&&t.nb){HOST.back(t.id);return true}if(t.idx>0){t.idx--;render();return true}return false}
+function anyOverlay(){return ['ql','bm','ov','imp'].some(id=>$(id).classList.contains('on'))}
+let lastRect='';
+function appSync(){if(!HOST)return;const e=entry();
+ if(e.type==='url'){HOST.show(tab().id,e.url)}
+ const r=$('view').getBoundingClientRect(),k=[r.left,r.top,r.width,r.height].map(Math.round).join(',');
+ if(k!==lastRect){lastRect=k;HOST.layout(Math.round(r.left),Math.round(r.top),Math.round(r.width),Math.round(r.height))}
+ HOST.visible(e.type==='url'&&!anyOverlay())}
+if(HOST){new ResizeObserver(()=>appSync()).observe($('view'));
+ const mo=new MutationObserver(()=>appSync());['ql','bm','ov','imp'].forEach(id=>mo.observe($(id),{attributes:true,attributeFilter:['class']}));
+ document.addEventListener('click',ev=>{const a=ev.target.closest('a[href]');if(!a)return;const u=a.getAttribute('href');if(!/^https?:\/\//i.test(u))return;ev.preventDefault();ev.stopPropagation();closeQl();closeBm();$('imp').classList.remove('on');openUrl(u)},true)}
+function openUrl(u){let host=u;try{host=new URL(u).hostname}catch(e){}const e=entry();if(e.type==='url'&&HOST){e.url=u;e.host=host;e.title='';HOST.show(tab().id,u);render()}else go({type:'url',url:u,host})}
+window.lumenOpen=u=>{if(/^https?:\/\//i.test(u))openUrl(u)};
+window.lumenBack=()=>{if(anyOverlay()){closeQl();closeBm();$('ov').classList.remove('on');$('imp').classList.remove('on');return true}return goBack()};
+window.lumenKey=k=>{if(k==='t')add();else if(k==='l'){$('addr').focus();$('addr').select()}else if(k==='b')openQl();else if(k==='d')addCurrent();else if(k==='r'&&HOST)HOST.reload(tab().id);else if(k==='w'&&tabs.length>1){const [ct]=tabs.splice(cur,1);HOST&&HOST.close(ct.id);cur=Math.min(cur,tabs.length-1);render()}};
+let progT=0;
+window.lumenEvent=d=>{const t=tabs.find(x=>String(x.id)===String(d.tab));if(!t)return;const e=t.hist[t.idx];
+ t.nb=!!d.back;t.nf=!!d.fwd;
+ if(e.type==='url'&&d.url&&/^https?:/i.test(d.url)){e.url=d.url;try{e.host=new URL(d.url).hostname}catch(x){}if(d.title)e.title=d.title}
+ if(t===tab()){if(document.activeElement!==$('addr'))$('addr').value=e.type==='url'?e.url:$('addr').value;renderTabs();
+  const p=$('prog'),v=+d.progress||100;p.style.width=v+'%';p.classList.toggle('on',v<100);clearTimeout(progT);if(v>=100)progT=setTimeout(()=>{p.style.width='0'},450)}};
+render();
+window.claude?.use?.('sample').then(s=>{sample=s;if(entry().type==='search'&&!entry().data)render()}).catch(()=>{});
+}
+</script>
+</body>
+</html>
