@@ -101,7 +101,7 @@ h2{font-size:20px;letter-spacing:-.01em;margin:44px 0 16px;text-align:left}
 .ovbar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:center;padding:12px 20px calc(12px + env(safe-area-inset-bottom));background:var(--glass);backdrop-filter:blur(20px);border-top:1px solid var(--line)}
 .done{font-weight:600;color:var(--blue);height:44px;padding:0 10px}
 /* bokmärken */
-.bmb.on svg{fill:var(--blue);stroke:var(--blue)}
+
 .bmb{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;position:relative}.bmb.hold::after{content:'';position:absolute;inset:4px;border-radius:12px;border:2.5px solid var(--blue);clip-path:inset(0 100% 0 0);animation:fill .52s linear forwards}@keyframes fill{to{clip-path:inset(0 0 0 0)}}
 .bmb.pulse{animation:pulse .5s cubic-bezier(.2,.8,.2,1)}@keyframes pulse{40%{transform:scale(1.35)}}
 /* snabblista */
@@ -203,6 +203,21 @@ html.app .shell{padding:0;max-width:none}html.app .win{border-radius:0;border:0;
 html.app.mac .tabs{padding-left:84px}html.app .tabs{-webkit-app-region:drag}html.app .tabs button,html.app .tab{-webkit-app-region:no-drag}
 html.app .view.web{background:var(--win)}
 @media(max-width:700px){.prog{top:-1px;bottom:auto}}
+/* färgade ikoner */
+:root{--c-blue:light-dark(#0071e3,#0a84ff);--c-orange:light-dark(#d96c00,#ff9f0a);--c-green:light-dark(#1f8a3b,#30d158);--c-purple:light-dark(#8944ab,#bf5af2);--c-red:light-dark(#d70015,#ff453a);--c-teal:light-dark(#007d99,#40c8e0)}
+#back,#fwd{--c:var(--c-blue)}#bmbtn{--c:var(--c-orange)}#home{--c:var(--c-green)}#tabsbtn{--c:var(--c-purple)}#newtab,#ovnew{--c:var(--c-teal)}
+.bar .ib,.tabs>.ib,.ovbar .ib{color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent);border-radius:14px;transition:background .2s,transform .15s}
+.bar .ib:hover,.tabs>.ib:hover,.ovbar .ib:hover{background:color-mix(in srgb,var(--c) 22%,transparent)}
+.bar .ib:active{transform:scale(.92)}
+.bar .ib:disabled{background:none;color:var(--sub)}
+.bar .ib svg,.tabs>.ib svg{stroke-width:2}
+.bmb.on{background:color-mix(in srgb,var(--c) 22%,transparent)!important}.bmb.on svg{fill:var(--c);stroke:var(--c)}
+.bmb.hold::after{border-color:var(--c)}
+.addr svg{stroke:var(--c-blue)}
+.row [data-edit]{color:var(--c-blue)}.row [data-del]{color:var(--c-red)}
+.fb svg{stroke:var(--c-blue)}.fb[data-f=fav] svg{stroke:var(--c-orange);fill:color-mix(in srgb,var(--c-orange) 25%,transparent)}
+.priv svg{stroke:var(--c-green)}
+@media(max-width:700px){.bar{gap:6px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
