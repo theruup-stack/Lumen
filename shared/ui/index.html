@@ -314,6 +314,31 @@ html.private .ptag{display:inline-block}
 .fdays{flex-wrap:wrap;gap:6px}.srow input[type=time]{height:40px;border-radius:10px;border:1px solid var(--line);background:var(--win);color:var(--ink);padding:0 8px;font-size:15px}
 .focusp .lead{max-width:420px;margin:0 auto 20px}
 @media(min-width:701px){.hgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* Bokmärken: tunna rader över hela bredden, öppnas från knappen */
+.ql{padding:0;background:rgba(10,12,30,.16);backdrop-filter:none;-webkit-backdrop-filter:none}
+.ql.on{display:block;animation:fade .25s ease}
+.ql .qc{position:fixed;left:0;right:0;top:max(10px,env(safe-area-inset-top));bottom:var(--barh,112px);width:auto;height:auto;max-width:none;
+ background:var(--win);backdrop-filter:none;-webkit-backdrop-filter:none;border:0;border-top:1px solid var(--line);border-radius:24px 24px 0 0;
+ box-shadow:0 -18px 50px rgba(10,12,40,.16);grid-template-rows:auto auto 1fr;
+ clip-path:circle(160% at var(--ox,88%) var(--oy,100%));animation:qopen .5s cubic-bezier(.2,.85,.2,1)}
+@keyframes qopen{from{clip-path:circle(0 at var(--ox,88%) var(--oy,100%))}}
+@media(min-width:701px){.ql .qc{top:calc(var(--bart,96px) + 6px);bottom:auto;left:auto;right:14px;width:470px;height:min(74vh,700px);border-radius:20px;border:1px solid var(--line);box-shadow:0 26px 70px rgba(10,12,40,.28)}}
+.ql .qf{display:none}
+.ql .qh{padding:14px 10px 10px 14px}
+.ql .qs{padding:0 30px 18px 0;-webkit-mask:none;mask:none}
+.ql .qg{position:sticky;top:0;z-index:1;padding:8px 18px 2px;background:var(--win);font-size:12px;letter-spacing:.02em}
+.ql .qr{min-height:48px;padding:0 12px 0 18px;gap:13px;border-radius:0;position:relative;background:none}
+.ql .qr::after{content:"";position:absolute;left:55px;right:0;bottom:0;height:1px;background:var(--line)}
+.ql .qr:hover,.ql .qr:active{background:var(--field);transform:none}
+.ql .qr .ico{width:24px;height:24px;border-radius:7px;font-size:12px;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.ql .qr .ico img{padding:14%}
+.ql .qr .tx{display:flex;align-items:baseline;gap:10px}
+.ql .qr .tx b{flex:1;min-width:0;font-size:16px;font-weight:500}
+.ql .qr .tx i{flex:0 1 auto;max-width:44%;font-size:13px}
+.ql .qr .chg{margin-left:2px}
+.ql .qs.anim .qr{animation:rowin .38s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0)*18ms + 140ms)}
+@keyframes rowin{from{opacity:0;transform:translateY(10px)}}
+.ql .rail{right:2px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -537,7 +562,13 @@ const sortKey=i=>(i.title||hostOf(i.url)).trim();
 const letter=i=>{const c=sortKey(i).charAt(0).toUpperCase();return /[A-ZÅÄÖÆØÜ]/.test(c)?c:'#'};
 let qItem=null;
 let qMode='bm';
-function openQl(){closeBm();renderQl();$('ql').classList.add('on');$('qs').scrollTop=0}
+function openQl(){closeBm();renderQl();const q=$('ql'),c=$('qc'),qs=$('qs');
+ const ch=$('chrome').getBoundingClientRect();q.style.setProperty('--barh',Math.round(innerHeight-ch.top)+'px');q.style.setProperty('--bart',Math.round(ch.bottom)+'px');
+ q.classList.add('on');const b=$('bmbtn').getBoundingClientRect(),r=c.getBoundingClientRect();
+ c.style.setProperty('--ox',Math.round(b.left+b.width/2-r.left)+'px');c.style.setProperty('--oy',Math.round(b.top+b.height/2-r.top)+'px');
+ c.style.animation='none';void c.offsetWidth;c.style.animation='';
+ qs.scrollTop=0;qs.classList.remove('anim');void qs.offsetWidth;qs.classList.add('anim');clearTimeout(openQl.t);openQl.t=setTimeout(()=>qs.classList.remove('anim'),1200)}
+function stagger(){$('qs').querySelectorAll('.qr').forEach((r,i)=>{if(i<28)r.style.setProperty('--i',i)})}
 function closeQl(){$('ql').classList.remove('on');$('qm').classList.remove('on')}
 function renderQl(){document.querySelectorAll('[data-qmode]').forEach(b=>b.classList.toggle('on',b.dataset.qmode===qMode));$('qsrch').hidden=qMode!=='hi';$('qmanage').textContent=qMode==='hi'?'Rensa':'Hantera';if(qMode==='hi'){renderHist();return}
  const it=[...bmItems()].sort((a,b)=>sortKey(a).localeCompare(sortKey(b),'sv',{sensitivity:'base'}));
@@ -547,7 +578,7 @@ function renderQl(){document.querySelectorAll('[data-qmode]').forEach(b=>b.class
  if(groups[0].l==='#'&&groups.length>1)groups.push(groups.shift());
  $('qs').innerHTML=groups.map(g=>`<section id="qg-${g.l==='#'?'hash':g.l}" data-l="${esc(g.l)}"><div class="qg">${esc(g.l)}</div>${g.items.map(i=>{const inner=`${icon(i)}<span class="tx"><b>${esc(i.title||hostOf(i.url))}</b><i>${i.q?'Sökning i Lumen':esc(hostOf(i.url))}${i.watch&&!i.wc?' · bevakas':''}</i></span>${i.wc?'<em class="chg">Ändrad</em>':''}`;
   return i.q?`<button class="qr" data-qid="${esc(i.id)}">${inner}</button>`:`<a class="qr" data-qid="${esc(i.id)}" href="${esc(i.url)}" target="_blank" rel="noopener">${inner}</a>`}).join('')}</section>`).join('');
- $('rail').innerHTML=groups.length>3?groups.map(g=>`<span data-l="${esc(g.l)}">${esc(g.l)}</span>`).join(''):''}
+ $('rail').innerHTML=groups.length>3?groups.map(g=>`<span data-l="${esc(g.l)}">${esc(g.l)}</span>`).join(''):'';stagger()}
 let bubT=0;
 function scrub(ev){const el=document.elementFromPoint(ev.clientX,ev.clientY);const l=el?.dataset?.l;if(!l||el.parentElement!==$('rail'))return;
  const sec=$('qs').querySelector(`section[data-l="${CSS.escape(l)}"]`);if(sec)$('qs').scrollTop=sec.offsetTop;
@@ -668,7 +699,7 @@ function renderHist(){const q=$('hq').value.trim().toLowerCase();$('rail').inner
   out+=hView==='grid'?`<a class="hcard" data-qid="h:${h.ts}" href="${esc(href)}" target="_blank" rel="noopener"><div class="th" data-th="${esc(h.u)}"></div><b>${esc(h.t||hs)}</b><i>${esc(hs)} · ${tm}</i></a>`
    :`<a class="qr" data-qid="h:${h.ts}" href="${esc(href)}" target="_blank" rel="noopener">${icon({title:h.t||hs,url:h.u})}<span class="tx"><b>${esc(h.t||hs)}</b><i>${esc(hs)} · ${tm}</i></span></a>`}
  if(hView==='grid')out=out.replace(/<div class="qg">([^<]*)<\/div>/g,'<div class="qg">$1</div><div class="hgrid">').replace(/<\/section>/g,'</div></section>');
- $('qs').innerHTML=out+(hView==='grid'?'</div>':'')+'</section>';if(hView==='grid')fillThumbs()}
+ $('qs').innerHTML=out+(hView==='grid'?'</div>':'')+'</section>';if(hView==='grid')fillThumbs();else stagger()}
 document.getElementById('hvw').addEventListener('click',ev=>{const b=ev.target.closest('[data-hv]');if(!b)return;hView=b.dataset.hv;store.set('lumen-hview',hView);renderHist()});
 document.querySelectorAll('[data-qmode]').forEach(b=>b.onclick=()=>{qMode=b.dataset.qmode;$('qm').classList.remove('on');renderQl();$('qs').scrollTop=0});
 $('hq').addEventListener('input',()=>renderHist());
