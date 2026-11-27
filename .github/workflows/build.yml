@@ -74,9 +74,9 @@ jobs:
             desktop/dist/*.AppImage
           if-no-files-found: error
 
-  release:
-    name: Publicera
-    needs: [android, desktop]
+  release-android:
+    name: Publicera Android
+    needs: [android]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
@@ -84,15 +84,15 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
+          name: android
           path: out
-          merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
           name: Lumen 1.0.${{ github.run_number }}
           body: |
             **Android:** ladda ner `Lumen-android.apk` på telefonen och öppna filen.
-            **Windows:** `Lumen-win-x64.exe` · **Mac:** `Lumen-mac-universal.dmg` · **Linux:** `Lumen-linux-x86_64.AppImage`
+            **Dator:** filerna läggs till här när de är byggda.
           files: out/*
       - name: Publicera till Lumen-releases (för uppdateringar i appen)
         if: env.RELEASES_TOKEN != ''
@@ -105,5 +105,31 @@ jobs:
           make_latest: true
           body: |
             **Android:** ladda ner `Lumen-android.apk` på telefonen och öppna filen. Efter det uppdaterar Lumen sig själv.
-            **Windows:** `Lumen-win-x64.exe` · **Mac:** `Lumen-mac-universal.dmg` · **Linux:** `Lumen-linux-x86_64.AppImage`
+            **Dator:** `Lumen-win-x64.exe` · `Lumen-mac-universal.dmg` · `Lumen-linux-x86_64.AppImage` (läggs till när de är byggda)
+          files: out/*
+
+  release-desktop:
+    name: Publicera dator
+    needs: [release-android, desktop]
+    if: always() && github.ref == 'refs/heads/main' && needs.release-android.result == 'success'
+    runs-on: ubuntu-latest
+    env:
+      RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          path: out
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          files: out/*
+      - name: Lägg datorfilerna i Lumen-releases
+        if: env.RELEASES_TOKEN != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: theruup-stack/Lumen-releases
+          token: ${{ secrets.RELEASES_TOKEN }}
+          tag_name: v1.0.${{ github.run_number }}
           files: out/*
