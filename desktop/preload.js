@@ -6,6 +6,8 @@ contextBridge.exposeInMainWorld('lumenHost', {
   version: (process.argv.find((a) => a.startsWith('--lumen-version=')) || '').split('=')[1] || '',
   show: (tab, url, priv) => send('show', String(tab), url || '', !!priv),
   setAdblock: (on) => send('adblock', !!on),
+  checkUpdate: () => send('checkUpdate'),
+  update: () => send('update'),
   close: (tab) => send('close', String(tab)),
   back: (tab) => send('back', String(tab)),
   fwd: (tab) => send('fwd', String(tab)),

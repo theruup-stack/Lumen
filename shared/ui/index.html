@@ -255,6 +255,13 @@ html.private .ptag{display:inline-block}
 .qh .seg{flex:none;order:0!important}.qh .seg button{height:36px;font-size:14px;padding:0 14px}
 .qsrch{padding:0 16px 8px}.qsrch input{width:100%;height:40px;border-radius:12px;border:0;background:var(--field);padding:0 14px;font-size:16px;outline:0}
 .qc{grid-template-rows:auto auto 1fr auto}
+/* uppdateringar */
+.updc{display:flex;align-items:center;gap:14px;text-align:left;margin:0 0 26px;padding:14px 14px 14px 16px;border-radius:18px;background:linear-gradient(135deg,color-mix(in srgb,var(--c-blue) 14%,var(--card)),var(--card));border:1px solid color-mix(in srgb,var(--c-blue) 30%,transparent)}
+.updc img{width:44px;height:44px;border-radius:11px;flex:none}.updc span{flex:1;font-size:14px;color:var(--sub)}.updc b{display:block;color:var(--ink);font-size:16px}
+#home.dot::after,#gear.dot::after{content:"";position:absolute;top:7px;right:7px;width:9px;height:9px;border-radius:50%;background:var(--c-red);box-shadow:0 0 0 2px var(--win)}
+#home{position:relative}
+.ubar{height:6px;border-radius:3px;background:var(--field);overflow:hidden;margin-top:8px}.ubar i{display:block;height:100%;background:linear-gradient(90deg,#5a7bff,#0071e3);transition:width .3s}
+@media(min-width:701px){html.app .toast{top:8px;bottom:auto}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -324,7 +331,7 @@ tabs=[newTab()];
 const tab=()=>tabs[cur],entry=()=>tab().hist[tab().idx];
 const isUrl=s=>/^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i.test(s.trim())&&!/\s/.test(s.trim());
 const title=e=>e.type==='start'?'Startsida':e.type==='search'?e.q:(e.title||e.host);
-const HOST=(()=>{const a=window.LumenHost,d=window.lumenHost;if(a)return{show:(t,u,p)=>a.show(String(t),u||'',!!p),setAdblock:b=>a.setAdblock(!!b),version:(()=>{try{return a.version()}catch(e){return ''}})(),close:t=>a.close(String(t)),back:t=>a.back(String(t)),fwd:t=>a.fwd(String(t)),reload:t=>a.reload(String(t)),layout:(x,y,w,h)=>a.layout(x,y,w,h),visible:b=>a.visible(!!b),platform:'android'};return d||null})();
+const HOST=(()=>{const a=window.LumenHost,d=window.lumenHost;if(a)return{show:(t,u,p)=>a.show(String(t),u||'',!!p),setAdblock:b=>a.setAdblock(!!b),checkUpdate:()=>a.checkUpdate(),update:()=>a.update(),version:(()=>{try{return a.version()}catch(e){return ''}})(),close:t=>a.close(String(t)),back:t=>a.back(String(t)),fwd:t=>a.fwd(String(t)),reload:t=>a.reload(String(t)),layout:(x,y,w,h)=>a.layout(x,y,w,h),visible:b=>a.visible(!!b),platform:'android'};return d||null})();
 if(HOST){document.documentElement.classList.add('app');if(HOST.platform==='darwin')document.documentElement.classList.add('mac')}
 const ENGINE='https://duckduckgo.com/?q=';
 function go(e){const t=tab();if(!HOST&&e.type==='url')addHist(e.url,'',t.priv);t.hist=t.hist.slice(0,t.idx+1);t.hist.push(e);t.idx++;render()}
@@ -349,8 +356,9 @@ function render(){const e=entry();renderTabs();$('view').classList.remove('web')
  else renderSearch(e);
  appSync()}
 function startHTML(){if(tab().priv)return `<div class="start pstart"><div class="pico"><svg viewBox="0 0 24 24"><path d="M3 12c2.5-4 5.5-6 9-6s6.5 2 9 6c-2.5 4-5.5 6-9 6s-6.5-2-9-6z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></svg></div><h1>Privat surfning</h1><p class="lead">Lumen sparar ingen historik och inga sökningar från privata flikar. När du stänger den sista privata fliken raderas kakor och inloggningar från dem.</p><form class="big" id="bigf"><input id="bigq" type="search" placeholder="Sök privat med DuckDuckGo" aria-label="Sök" autocomplete="off"><button class="go">Sök</button></form></div>`;
- return `<div class="start"><button class="gear" id="gear" aria-label="Inställningar"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+ return `<div class="start"><button class="gear${canUpdate()&&upd.state==='available'?' dot':''}" id="gear" aria-label="Inställningar"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
  <img class="logo" src="lumen-icon-512.png" alt="Lumen" width="96" height="96">
+ ${updCard()}
  <h1 class="wmh"><svg class="wm" xmlns="http://www.w3.org/2000/svg" viewBox="-60 -330 6414 1900" role="img" aria-label="Lumen"><g>
 <defs>
 <radialGradient id="wms" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffe3a3"/><stop offset=".22" stop-color="#ffc56e" stop-opacity=".7"/><stop offset=".55" stop-color="#ffab55" stop-opacity=".22"/><stop offset="1" stop-color="#ff9a4a" stop-opacity="0"/></radialGradient>
@@ -626,10 +634,11 @@ $('set').addEventListener('click',ev=>{if(ev.target===$('set'))$('set').classLis
 $('view').addEventListener('click',ev=>{if(ev.target.closest('#gear'))openSet()});
 const fmtTime=ts=>ts?new Date(ts).toLocaleString('sv-SE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'aldrig';
 function renderSet(){
- $('setb').innerHTML=`<section><h4>Sökmotor</h4><div class="srow"><span>DuckDuckGo<i>Privat sökning utan spårning</i></span><span class="ok" style="flex:none">✓</span></div></section>
+ $('setb').innerHTML=`${['available','downloading','permission','installing'].includes(upd.state)?updHTML():''}<section><h4>Sökmotor</h4><div class="srow"><span>DuckDuckGo<i>Privat sökning utan spårning</i></span><span class="ok" style="flex:none">✓</span></div></section>
  ${HOST?`<section><h4>Annonsblockering</h4><label class="srow"><span>Blockera annonser och spårare<i>${abTotal.toLocaleString('sv-SE')} blockerade hittills</i></span><input type="checkbox" class="sw" id="abt" ${SET.ab?'checked':''}></label></section>`:''}
  ${HOST?syncHTML():''}
  <section><h4>Historik</h4><div class="srow"><span>${hist.length.toLocaleString('sv-SE')} ${hist.length===1?'besökt sida':'besökta sidor'}<i>Privata flikar sparas aldrig</i></span><button class="pill ghost" id="hclear">Rensa</button></div></section>
+ ${['available','downloading','permission','installing'].includes(upd.state)?'':updHTML()}
  <section><h4>Om Lumen</h4><div class="srow"><span>Lumen ${esc(HOST&&HOST.version||'webb')}<i>Webbläsare och sökmotor</i></span></div></section>`}
 $('setb').addEventListener('change',ev=>{if(ev.target.id==='abt'){SET.ab=ev.target.checked;store.set('lumen-set',SET);HOST&&HOST.setAdblock&&HOST.setAdblock(SET.ab);toast(SET.ab?'Annonsblockering på':'Annonsblockering av – ladda om sidan')}});
 $('setb').addEventListener('click',ev=>{const t=ev.target.closest('button');if(!t)return;
@@ -673,6 +682,31 @@ async function syncNow(loud){if(!HOST||!syn||!syn.token||syncing)return;syncing=
   if(loud)toast(syncMsg.replace('Fel: ',''))}
  finally{syncing=false;if($('set').classList.contains('on'))renderSet()}}
 if(HOST&&syn&&syn.token){setTimeout(()=>syncNow(false),1500);setInterval(()=>{if(!document.hidden)syncNow(false)},180000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncNow(false)})}
+
+/* ===== Uppdateringar ===== */
+let upd={state:''};
+const canUpdate=()=>!!(HOST&&HOST.update);
+function updCard(){if(!canUpdate()||upd.state!=='available')return '';return `<div class="updc"><img src="lumen-icon-180.png" alt=""><span><b>Lumen ${esc(upd.version)} finns</b>Ny version med förbättringar</span><button class="pill" data-upd="1">Uppdatera</button></div>`}
+function updHTML(){if(!canUpdate())return '';const v=esc(upd.version||''),cur=esc(HOST.version||'');let body;
+ switch(upd.state){
+  case 'available':body=`<div class="srow"><span>Lumen ${v} finns<i>Du har ${cur}</i></span><button class="pill" data-upd="1">Uppdatera</button></div>`;break;
+  case 'downloading':body=`<div class="srow"><span>Laddar ner Lumen ${v} … ${upd.progress||0} %<div class="ubar"><i style="width:${upd.progress||0}%"></i></div></span></div>`;break;
+  case 'permission':body=`<div class="srow"><span>Tillåt installation<i>Slå på ”Tillåt från den här källan” för Lumen i inställningen som öppnades och gå sedan tillbaka hit.</i></span><button class="pill" data-upd="1">Försök igen</button></div>`;break;
+  case 'installing':body=`<div class="srow"><span>Installerar …<i>Följ anvisningarna på skärmen.</i></span></div>`;break;
+  case 'ready-mac':body=`<div class="srow"><span>Nedladdad<i>Dra Lumen till Program i fönstret som öppnades och starta om Lumen.</i></span></div>`;break;
+  case 'ready-linux':body=`<div class="srow"><span>Nedladdad<i>Den nya AppImage-filen visas i mappen som öppnades.</i></span></div>`;break;
+  case 'checking':body=`<div class="srow"><span>Söker efter uppdatering …<i>Du har ${cur}</i></span></div>`;break;
+  case 'error':body=`<div class="srow"><span>Kunde inte uppdatera<i class="err">Kontrollera anslutningen och försök igen.</i></span><button class="pill ghost" id="updchk">Försök igen</button></div>`;break;
+  case 'latest':body=`<div class="srow"><span>Lumen ${cur}<i class="ok">Du har den senaste versionen</i></span><button class="pill ghost" id="updchk">Sök igen</button></div>`;break;
+  default:body=`<div class="srow"><span>Lumen ${cur}<i>Lumen söker efter uppdateringar automatiskt</i></span><button class="pill ghost" id="updchk">Sök nu</button></div>`}
+ return `<section><h4>Uppdateringar</h4>${body}</section>`}
+window.lumenUpdate=d=>{const was=upd.state;upd=Object.assign({},upd,d||{});
+ const avail=upd.state==='available';$('home').classList.toggle('dot',avail);document.getElementById('gear')?.classList.toggle('dot',avail);
+ if(avail&&was!=='available'){toast('Lumen '+upd.version+' finns','Uppdatera',()=>HOST.update());if(entry().type==='start')$('view').innerHTML=startHTML()}
+ if(upd.state==='latest'&&!$('set').classList.contains('on'))toast('Du har den senaste versionen');
+ if(upd.state==='error'&&!$('set').classList.contains('on'))toast('Kunde inte uppdatera just nu');
+ if($('set').classList.contains('on'))renderSet()};
+document.addEventListener('click',ev=>{if(ev.target.closest('[data-upd]')&&canUpdate()){ev.preventDefault();HOST.update()}else if(ev.target.closest('#updchk')&&canUpdate()){HOST.checkUpdate()}});
 
 render();
 window.claude?.use?.('sample').then(s=>{sample=s;if(entry().type==='search'&&!entry().data)render()}).catch(()=>{});

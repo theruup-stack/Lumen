@@ -8,7 +8,9 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.os.Environment
 import android.view.Gravity
 import android.view.View
@@ -25,12 +27,17 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.Toast
+import androidx.core.content.FileProvider
 import androidx.webkit.ProfileStore
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
+import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlin.concurrent.thread
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -64,6 +71,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Blocker.init(this)
+        File(cacheDir, "updates/lumen.apk").delete()
         root = FrameLayout(this)
         ui = WebView(this)
         setup(ui)
@@ -86,6 +94,7 @@ class MainActivity : Activity() {
 
             override fun onPageFinished(view: WebView, url: String) {
                 uiReady = true
+                checkUpdate(false)
                 pendingUrl?.let { open(it) }
                 pendingUrl = null
             }
@@ -308,6 +317,14 @@ class MainActivity : Activity() {
         fun setAdblock(on: Boolean) { Blocker.enabled = on }
 
         @JavascriptInterface
+        fun checkUpdate() = runOnUiThread { this@MainActivity.checkUpdate(true) }
+
+        @JavascriptInterface
+        fun update() = runOnUiThread {
+            if (pendingInstall) installUpdate() else downloadUpdate()
+        }
+
+        @JavascriptInterface
         fun version(): String = try {
             packageManager.getPackageInfo(packageName, 0).versionName ?: ""
         } catch (e: Exception) { "" }
@@ -333,6 +350,137 @@ class MainActivity : Activity() {
             showContent = v
             applyVisibility()
         }
+    }
+
+    /* ---------- Uppdateringar ---------- */
+    private var updateUrl: String? = null
+    private var updateVersion = ""
+    private var pendingInstall = false
+    private var lastCheck = 0L
+    @Volatile private var downloading = false
+
+    private fun currentVersionCode(): Int = try {
+        val info = packageManager.getPackageInfo(packageName, 0)
+        if (Build.VERSION.SDK_INT >= 28) info.longVersionCode.toInt()
+        else @Suppress("DEPRECATION") info.versionCode
+    } catch (e: Exception) { 0 }
+
+    private fun sendUpdate(state: String, extra: (JSONObject) -> Unit = {}) {
+        val o = JSONObject()
+        o.put("state", state)
+        o.put("version", updateVersion)
+        extra(o)
+        js("window.lumenUpdate&&lumenUpdate($o)")
+    }
+
+    private fun checkUpdate(manual: Boolean) {
+        lastCheck = System.currentTimeMillis()
+        if (manual) sendUpdate("checking")
+        thread(name = "lumen-update-check") {
+            try {
+                val c = URL(RELEASES_API).openConnection() as HttpURLConnection
+                c.setRequestProperty("Accept", "application/vnd.github+json")
+                c.connectTimeout = 10000
+                c.readTimeout = 15000
+                if (c.responseCode != 200) {
+                    if (manual) sendUpdate("error")
+                    c.disconnect()
+                    return@thread
+                }
+                val j = JSONObject(c.inputStream.bufferedReader().readText())
+                c.disconnect()
+                val tag = j.optString("tag_name")
+                val n = tag.substringAfterLast('.').toIntOrNull() ?: 0
+                var url: String? = null
+                val assets = j.optJSONArray("assets")
+                if (assets != null) for (i in 0 until assets.length()) {
+                    val a = assets.getJSONObject(i)
+                    if (a.optString("name") == "Lumen-android.apk") url = a.optString("browser_download_url")
+                }
+                if (n > currentVersionCode() && url != null) {
+                    updateUrl = url
+                    updateVersion = tag.removePrefix("v")
+                    sendUpdate("available")
+                } else if (manual) sendUpdate("latest")
+            } catch (e: Exception) {
+                if (manual) sendUpdate("error")
+            }
+        }
+    }
+
+    private fun updateFile() = File(File(cacheDir, "updates").apply { mkdirs() }, "lumen.apk")
+
+    private fun downloadUpdate() {
+        val url = updateUrl ?: return checkUpdate(true)
+        if (downloading) return
+        downloading = true
+        sendUpdate("downloading") { it.put("progress", 0) }
+        thread(name = "lumen-update-download") {
+            try {
+                val c = URL(url).openConnection() as HttpURLConnection
+                c.instanceFollowRedirects = true
+                c.connectTimeout = 15000
+                c.readTimeout = 30000
+                val total = c.contentLength
+                val file = updateFile()
+                var got = 0L
+                var lastP = -1
+                c.inputStream.use { input ->
+                    file.outputStream().use { out ->
+                        val buf = ByteArray(64 * 1024)
+                        while (true) {
+                            val r = input.read(buf)
+                            if (r < 0) break
+                            out.write(buf, 0, r)
+                            got += r
+                            if (total > 0) {
+                                val p = (got * 100 / total).toInt()
+                                if (p >= lastP + 5) {
+                                    lastP = p
+                                    sendUpdate("downloading") { it.put("progress", p) }
+                                }
+                            }
+                        }
+                    }
+                }
+                c.disconnect()
+                downloading = false
+                runOnUiThread { installUpdate() }
+            } catch (e: Exception) {
+                downloading = false
+                sendUpdate("error")
+            }
+        }
+    }
+
+    private fun installUpdate() {
+        val file = updateFile()
+        if (!file.exists()) return
+        if (Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
+            pendingInstall = true
+            sendUpdate("permission")
+            try {
+                startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
+            } catch (e: Exception) { }
+            return
+        }
+        pendingInstall = false
+        try {
+            val uri = FileProvider.getUriForFile(this, "$packageName.files", file)
+            val i = Intent(Intent.ACTION_VIEW)
+                .setDataAndType(uri, "application/vnd.android.package-archive")
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(i)
+            sendUpdate("installing")
+        } catch (e: Exception) {
+            sendUpdate("error")
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (pendingInstall && (Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls())) installUpdate()
+        else if (uiReady && System.currentTimeMillis() - lastCheck > 6 * 60 * 60 * 1000L) checkUpdate(false)
     }
 
     /** Raderar kakor och lagrad data från privata flikar. */
@@ -381,5 +529,6 @@ class MainActivity : Activity() {
     companion object {
         private const val PICK_FILE = 42
         private const val PRIVATE_PROFILE = "lumen-private"
+        private const val RELEASES_API = "https://api.github.com/repos/theruup-stack/Lumen-releases/releases/latest"
     }
 }

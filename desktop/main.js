@@ -78,6 +78,64 @@ function scheduleEmit(wcId) {
   setTimeout(() => { pendingEmit.delete(wcId); const f = emitters.get(wcId); if (f) f(); }, 400);
 }
 
+/* ---- Uppdateringar ---- */
+const RELEASES_API = 'https://api.github.com/repos/theruup-stack/Lumen-releases/releases/latest';
+const ASSET = process.platform === 'win32' ? 'Lumen-win-x64.exe' : process.platform === 'darwin' ? 'Lumen-mac-universal.dmg' : 'Lumen-linux-x86_64.AppImage';
+let upd = null;
+let updBusy = false;
+const sendUpd = (d) => run(`window.lumenUpdate&&lumenUpdate(${JSON.stringify(Object.assign({ version: upd ? upd.version : '' }, d))})`);
+async function checkUpdate(manual) {
+  if (manual) sendUpd({ state: 'checking' });
+  try {
+    const r = await fetch(RELEASES_API, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'Lumen' } });
+    if (!r.ok) throw new Error(String(r.status));
+    const j = await r.json();
+    const n = Number(String(j.tag_name || '').split('.').pop()) || 0;
+    const cur = Number(app.getVersion().split('.').pop()) || 0;
+    const a = (j.assets || []).find((x) => x.name === ASSET);
+    if (n > cur && a) {
+      upd = { url: a.browser_download_url, name: a.name, version: String(j.tag_name).replace(/^v/, '') };
+      sendUpd({ state: 'available' });
+    } else if (manual) sendUpd({ state: 'latest' });
+  } catch (e) {
+    if (manual) sendUpd({ state: 'error' });
+  }
+}
+async function doUpdate() {
+  if (!upd) return checkUpdate(true);
+  if (updBusy) return;
+  updBusy = true;
+  try {
+    sendUpd({ state: 'downloading', progress: 0 });
+    const r = await fetch(upd.url);
+    if (!r.ok || !r.body) throw new Error('download');
+    const total = Number(r.headers.get('content-length')) || 0;
+    const file = path.join(app.getPath('temp'), upd.name);
+    const out = fs.createWriteStream(file);
+    let got = 0;
+    let lastP = -1;
+    for await (const chunk of r.body) {
+      out.write(Buffer.from(chunk));
+      got += chunk.length;
+      const p = total ? Math.floor((got * 100) / total) : 0;
+      if (p >= lastP + 5) { lastP = p; sendUpd({ state: 'downloading', progress: p }); }
+    }
+    await new Promise((res) => out.end(res));
+    if (process.platform === 'linux') {
+      fs.chmodSync(file, 0o755);
+      shell.showItemInFolder(file);
+      sendUpd({ state: 'ready-linux' });
+    } else {
+      await shell.openPath(file);
+      if (process.platform === 'win32') { sendUpd({ state: 'installing' }); setTimeout(() => app.quit(), 1500); }
+      else sendUpd({ state: 'ready-mac' });
+    }
+  } catch (e) {
+    sendUpd({ state: 'error' });
+  }
+  updBusy = false;
+}
+
 /* ---- Privata flikar: en minnessession som kastas när sista privata fliken stängs ---- */
 let privGen = 1;
 const privTabs = new Set();
@@ -112,6 +170,8 @@ function createWindow() {
   ui.setBackgroundColor('#00000000');
   win.contentView.addChildView(ui);
   ui.webContents.loadFile(path.join(__dirname, 'ui', 'index.html'));
+  ui.webContents.once('did-finish-load', () => setTimeout(() => checkUpdate(false), 3000));
+  setInterval(() => checkUpdate(false), 6 * 60 * 60 * 1000);
   ui.webContents.setWindowOpenHandler(({ url }) => {
     if (isWeb(url)) openInLumen(url); else shell.openExternal(url);
     return { action: 'deny' };
@@ -240,6 +300,8 @@ ipcMain.on('lumen', (e, cmd, ...a) => {
       break;
     }
     case 'adblock': adblock = !!a[0]; break;
+    case 'checkUpdate': checkUpdate(true); break;
+    case 'update': doUpdate(); break;
     case 'back': tabs.get(id)?.webContents.navigationHistory.goBack(); break;
     case 'fwd': tabs.get(id)?.webContents.navigationHistory.goForward(); break;
     case 'reload': tabs.get(id)?.webContents.reload(); break;
