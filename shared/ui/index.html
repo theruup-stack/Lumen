@@ -266,8 +266,8 @@ html.private .ptag{display:inline-block}
   <div class="bar">
    <button class="ib" id="back" aria-label="Bakåt"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
    <button class="ib" id="fwd" aria-label="Framåt"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
-   <form class="addr" id="addrf"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-    <span class="ptag">Privat</span><input id="addr" type="search" autocomplete="off" placeholder="Sök eller ange webbplats" aria-label="Adressfält"><button type="button" class="shield" id="shield" hidden aria-label="Blockerade annonser och spårare"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span id="shc">0</span></button></form><div class="tdots" id="tdots"></div>
+   <form class="addr" id="addrf" novalidate><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+    <span class="ptag">Privat</span><input id="addr" type="text" inputmode="url" enterkeyhint="go" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Sök eller ange webbplats" aria-label="Adressfält"><button type="button" class="shield" id="shield" hidden aria-label="Blockerade annonser och spårare"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span id="shc">0</span></button></form><div class="tdots" id="tdots"></div>
    <button class="ib bmb" id="bmbtn" aria-label="Bokmärken – håll inne för att spara sidan" title="Tryck: bokmärken · Håll inne: spara sidan"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button>
    <button class="ib" id="home" aria-label="Startsida"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg></button>
    <button class="ib" id="tabsbtn" aria-label="Visa flikar"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="13" height="13" rx="3"/><path d="M8 4h9a3 3 0 0 1 3 3v9"/></svg></button>
@@ -285,7 +285,7 @@ html.private .ptag{display:inline-block}
  <div class="sh-f"><span id="bmsync">Sparas på den här enheten</span><button class="impb" id="impopen">Importera från Google</button></div>
  <div class="ed" id="ed"><form id="edf"><h3 id="edh">Nytt bokmärke</h3>
   <label>Namn<input id="edt" required maxlength="140"></label>
-  <label>Adress<input id="edu" required placeholder="exempel.se" inputmode="url" autocomplete="off"></label>
+  <label>Adress<input id="edu" required placeholder="exempel.se" inputmode="url" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></label>
   <label>Mapp<select id="edfo"></select></label>
   <div class="btns"><button type="button" class="del" id="eddel">Ta bort</button><button type="button" class="pill ghost" id="edc">Avbryt</button><button class="pill">Spara</button></div></form></div>
 </div></div>
@@ -328,7 +328,7 @@ const HOST=(()=>{const a=window.LumenHost,d=window.lumenHost;if(a)return{show:(t
 if(HOST){document.documentElement.classList.add('app');if(HOST.platform==='darwin')document.documentElement.classList.add('mac')}
 const ENGINE='https://duckduckgo.com/?q=';
 function go(e){const t=tab();if(!HOST&&e.type==='url')addHist(e.url,'',t.priv);t.hist=t.hist.slice(0,t.idx+1);t.hist.push(e);t.idx++;render()}
-function submit(raw){const s=raw.trim();if(!s)return;
+function submit(raw){let s=raw.trim();if(!s)return;{const t=s.replace(/\s*\.\s*/g,'.').replace(/\s*\/\s*/g,'/');if(t!==s&&isUrl(t))s=t}
  if(isUrl(s)){const url=/^https?:\/\//i.test(s)?s:'https://'+s;let host=url;try{host=new URL(url).hostname}catch(e){}go({type:'url',url,host})}
  else{if(!tab().priv){recent=[s,...recent.filter(r=>r!==s)].slice(0,8);store.set('lumen-recent',recent)}if(HOST)go({type:'url',url:ENGINE+encodeURIComponent(s),host:'Sök: '+s,title:s});else go({type:'search',q:s})}}
 function renderTabs(){
