@@ -7,6 +7,8 @@ const fs = require('fs');
 
 /* ---- Annonsblockering ---- */
 let adblock = true;
+let adAllow = new Set();
+const pageAllowed = (u) => { try { const h = new URL(u).hostname.replace(/^www\./, ''); return [...adAllow].some((a) => h === a || h.endsWith('.' + a)); } catch (e) { return false; } };
 let domains = new Set();
 const blockedCount = new Map(); // webContentsId -> antal
 const wcToTab = new Map();
@@ -57,6 +59,7 @@ function isBlocked(host) {
   }
 }
 const guarded = new WeakSet();
+const asked = new Map();
 const downloadsList = [];
 let dlSeq = 0;
 function guard(ses) {
@@ -69,7 +72,6 @@ function guard(ses) {
     item.on('updated', (ev, state) => { d.got = item.getReceivedBytes(); d.total = item.getTotalBytes(); d.status = state === 'interrupted' ? 'paused' : 'running'; });
     item.once('done', (ev, state) => { d.got = item.getReceivedBytes(); d.path = item.getSavePath(); d.status = state === 'completed' ? 'done' : 'failed'; d.ts = Date.now(); });
   });
-  const asked = new Map();
   ses.setPermissionRequestHandler((wc, permission, cb, details) => {
     if (permission === 'fullscreen' || permission === 'clipboard-sanitized-write') return cb(true);
     const names = { media: 'kameran eller mikrofonen', geolocation: 'din plats', notifications: 'skicka notiser' };
@@ -83,6 +85,7 @@ function guard(ses) {
   });
   ses.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (d, cb) => {
     if (d.resourceType === 'mainFrame' || !d.webContentsId || !wcToTab.has(d.webContentsId)) return cb({});
+    try { const owner = require('electron').webContents.fromId(d.webContentsId); if (owner && pageAllowed(owner.getURL())) return cb({}); } catch (e) {}
     let host = '';
     try { host = new URL(d.url).hostname; } catch (e) {}
     if (!isBlocked(host)) return cb({});
@@ -338,6 +341,30 @@ ipcMain.on('lumen', (e, cmd, ...a) => {
       break;
     }
     case 'adblock': adblock = !!a[0]; break;
+    case 'adallow': try { adAllow = new Set(JSON.parse(a[1]).map((x) => String(x).toLowerCase())); } catch (e) {} break;
+    case 'sitePerms': {
+      const list = [...asked.entries()].map(([k, v]) => { const [host, what] = k.split('|'); return { host, what: { media: 'kamera/mikrofon', geolocation: 'plats', notifications: 'notiser' }[what] || what, allowed: v }; });
+      run(`window.lumenResult&&lumenResult(${JSON.stringify(a[1])},${JSON.stringify(JSON.stringify(list))})`);
+      break;
+    }
+    case 'resetSite': {
+      for (const k of [...asked.keys()]) if (k.startsWith(id + '|')) asked.delete(k);
+      const origins = ['https://' + id, 'https://www.' + id.replace(/^www\./, '')];
+      for (const v of tabs.values()) for (const o of origins) v.webContents.session.clearStorageData({ origin: o }).catch(() => {});
+      for (const o of origins) session.defaultSession.clearStorageData({ origin: o }).catch(() => {});
+      break;
+    }
+    case 'zoom': { const v = tabs.get(id); if (v) v.webContents.setZoomFactor(Math.min(2.5, Math.max(0.5, (Number(a[1]) || 100) / 100))); break; }
+    case 'print': {
+      const v = tabs.get(id);
+      if (!v) break;
+      const name = (v.webContents.getTitle() || 'Lumen').replace(/[\\/:*?"<>|]/g, ' ').slice(0, 60) + '.pdf';
+      dialog.showSaveDialog(win, { defaultPath: path.join(app.getPath('downloads'), name), filters: [{ name: 'PDF', extensions: ['pdf'] }] }).then((r) => {
+        if (r.canceled || !r.filePath) return;
+        return v.webContents.printToPDF({ printBackground: true }).then((data) => fs.writeFileSync(r.filePath, data)).then(() => shell.showItemInFolder(r.filePath));
+      }).catch(() => {});
+      break;
+    }
     case 'downloads': run(`window.lumenResult&&lumenResult(${JSON.stringify(a[1])},${JSON.stringify(JSON.stringify(downloadsList.map(({ path, ...r }) => r)))})`); break;
     case 'openDownload': { const d = downloadsList.find((x) => x.id === id); if (d && d.path) shell.openPath(d.path); break; }
     case 'run': {

@@ -12,6 +12,16 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.drawable.Icon
 import android.os.Handler
+import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
+import android.print.PrintAttributes
+import android.print.PrintManager
+import android.speech.RecognizerIntent
+import android.webkit.WebStorage
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import android.os.Looper
 import androidx.webkit.WebViewFeature as WVF
 import android.content.pm.ActivityInfo
@@ -78,6 +88,9 @@ class MainActivity : Activity() {
     private val tabs = LinkedHashMap<String, WebView>()
     private val boxes = LinkedHashMap<String, SwipeRefreshLayout>()
     private val mediaPlaying = ConcurrentHashMap<String, Boolean>()
+    private val pageHost = ConcurrentHashMap<String, String>()
+    private var darkDefault = false
+    private var pendingVoice: String? = null
     private var current: String? = null
     private var showContent = false
     private var area = IntArray(4) // x, y, bredd, höjd i pixlar
@@ -230,6 +243,7 @@ class MainActivity : Activity() {
             if (WVF.isFeatureSupported(WVF.DOCUMENT_START_SCRIPT)) WebViewCompat.addDocumentStartJavaScript(w, BG_JS, setOf("*"))
         } catch (e: Throwable) { }
         w.setOnLongClickListener { longPress(id, w) }
+        applyDark(w, darkDefault)
         if (priv) {
             w.settings.cacheMode = WebSettings.LOAD_NO_CACHE
             w.settings.saveFormData = false
@@ -252,13 +266,15 @@ class MainActivity : Activity() {
             }
 
             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
-                if (request.isForMainFrame || !Blocker.blocked(request.url.host)) return null
+                if (request.isForMainFrame) { request.url.host?.let { pageHost[id] = it }; return null }
+                if (Blocker.pageAllowed(pageHost[id]) || !Blocker.blocked(request.url.host)) return null
                 blockedCount.getOrPut(id) { AtomicInteger() }.incrementAndGet()
                 if (emitPending.put(id, true) == null) ui.postDelayed({ emitPending.remove(id); emit(id) }, 400)
                 return WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream(ByteArray(0)))
             }
 
             override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {
+                Uri.parse(url).host?.let { pageHost[id] = it }
                 blockedCount[id]?.set(0)
                 emit(id)
             }
@@ -476,7 +492,31 @@ class MainActivity : Activity() {
     /* ---------- Kamera, mikrofon och plats ---------- */
     private var pendingWebPermission: PermissionRequest? = null
     private var pendingGeo: Pair<String, GeolocationPermissions.Callback>? = null
-    private val allowedOrigins = HashMap<String, Boolean>()
+    private val perms by lazy { getSharedPreferences("perms", Context.MODE_PRIVATE) }
+    private val allowedOrigins = object {
+        operator fun get(k: String): Boolean? = if (perms.contains(k)) perms.getBoolean(k, false) else null
+        operator fun set(k: String, v: Boolean) { perms.edit().putBoolean(k, v).apply() }
+    }
+
+    private fun applyDark(w: WebView, on: Boolean) {
+        try {
+            if (WVF.isFeatureSupported(WVF.ALGORITHMIC_DARKENING)) WebSettingsCompat.setAlgorithmicDarkeningAllowed(w.settings, on)
+        } catch (e: Throwable) { }
+    }
+
+    /* ---------- Skaka för att öppna stängd flik ---------- */
+    private var lastShake = 0L
+    private val shake = object : SensorEventListener {
+        override fun onSensorChanged(e: SensorEvent) {
+            val g = Math.sqrt((e.values[0] * e.values[0] + e.values[1] * e.values[1] + e.values[2] * e.values[2]).toDouble()) / SensorManager.GRAVITY_EARTH
+            val now = System.currentTimeMillis()
+            if (g > 2.8 && now - lastShake > 2000) {
+                lastShake = now
+                js("window.lumenShake&&lumenShake()")
+            }
+        }
+        override fun onAccuracyChanged(s: Sensor?, a: Int) {}
+    }
 
     private fun askPermission(request: PermissionRequest) = runOnUiThread {
         val wanted = request.resources.filter {
@@ -688,6 +728,84 @@ class MainActivity : Activity() {
         fun share(url: String, title: String) = runOnUiThread { this@MainActivity.share(url, title) }
 
         @JavascriptInterface
+        fun setAdAllow(json: String) {
+            Blocker.allowed = try {
+                val a = org.json.JSONArray(json); (0 until a.length()).map { a.getString(it).lowercase() }.toSet()
+            } catch (e: Exception) { emptySet() }
+        }
+
+        @JavascriptInterface
+        fun sitePerms(req: String) {
+            val arr = org.json.JSONArray()
+            for ((k, v) in perms.all) {
+                val parts = k.split("|")
+                if (parts.size == 2) arr.put(JSONObject().put("host", parts[0]).put("what", parts[1]).put("allowed", v == true))
+            }
+            result(req, arr.toString())
+        }
+
+        @JavascriptInterface
+        fun resetSite(host: String) = runOnUiThread {
+            val ed = perms.edit()
+            for (k in perms.all.keys) if (k.startsWith("$host|")) ed.remove(k)
+            ed.apply()
+            val cm = CookieManager.getInstance()
+            for (h in listOf(host, "www.$host", host.removePrefix("www."))) {
+                val url = "https://$h"
+                cm.getCookie(url)?.split(";")?.forEach { c ->
+                    val name = c.substringBefore("=").trim()
+                    if (name.isNotEmpty()) {
+                        cm.setCookie(url, "$name=; Max-Age=0; Path=/")
+                        cm.setCookie(url, "$name=; Max-Age=0; Path=/; Domain=.${host.removePrefix("www.")}")
+                    }
+                }
+                WebStorage.getInstance().deleteOrigin(url)
+            }
+            cm.flush()
+        }
+
+        @JavascriptInterface
+        fun setDark(id: String, on: Boolean) = runOnUiThread { tabs[id]?.let { applyDark(it, on) } }
+
+        @JavascriptInterface
+        fun setDarkDefault(on: Boolean) = runOnUiThread { darkDefault = on }
+
+        @JavascriptInterface
+        fun setZoom(id: String, pct: Int) = runOnUiThread { tabs[id]?.settings?.textZoom = pct.coerceIn(50, 250) }
+
+        @JavascriptInterface
+        fun voice(req: String) = runOnUiThread {
+            try {
+                pendingVoice = req
+                startActivityForResult(Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                    .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_WEB_SEARCH)
+                    .putExtra(RecognizerIntent.EXTRA_LANGUAGE, "sv-SE")
+                    .putExtra(RecognizerIntent.EXTRA_PROMPT, "Säg vad du vill söka efter"), REQ_VOICE)
+            } catch (e: Exception) {
+                pendingVoice = null
+                result(req, "null")
+                Toast.makeText(this@MainActivity, "Röstigenkänning finns inte på telefonen", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        @JavascriptInterface
+        fun scanQr(req: String) = runOnUiThread {
+            try {
+                GmsBarcodeScanning.getClient(this@MainActivity).startScan()
+                    .addOnSuccessListener { result(req, JSONObject.quote(it.rawValue ?: "")) }
+                    .addOnFailureListener { result(req, "null") }
+                    .addOnCanceledListener { result(req, "null") }
+            } catch (e: Throwable) { result(req, "null") }
+        }
+
+        @JavascriptInterface
+        fun print(id: String) = runOnUiThread {
+            val w = tabs[id] ?: return@runOnUiThread
+            val name = (w.title?.takeIf { it.isNotBlank() } ?: "Lumen").replace(Regex("[\\/:*?\"<>|]"), " ").take(60)
+            (getSystemService(PRINT_SERVICE) as PrintManager).print(name, w.createPrintDocumentAdapter(name), PrintAttributes.Builder().build())
+        }
+
+        @JavascriptInterface
         fun addToHome(id: String) = runOnUiThread { this@MainActivity.addToHome(id) }
 
         @JavascriptInterface
@@ -869,6 +987,9 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        (getSystemService(SENSOR_SERVICE) as SensorManager).let { sm ->
+            sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.let { sm.registerListener(shake, it, SensorManager.SENSOR_DELAY_UI) }
+        }
         stopService(Intent(this, AudioService::class.java))
         if (pendingInstall && (Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls())) installUpdate()
         else if (uiReady && System.currentTimeMillis() - lastCheck > 6 * 60 * 60 * 1000L) checkUpdate(false)
@@ -889,6 +1010,12 @@ class MainActivity : Activity() {
 
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == REQ_VOICE) {
+            val text = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+            pendingVoice?.let { result(it, if (resultCode == RESULT_OK && text != null) JSONObject.quote(text) else "null") }
+            pendingVoice = null
+            return
+        }
         if (requestCode == PICK_FILE) {
             fileCallback?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data))
             fileCallback = null
@@ -908,6 +1035,7 @@ class MainActivity : Activity() {
 
     override fun onPause() {
         super.onPause()
+        (getSystemService(SENSOR_SERVICE) as SensorManager).unregisterListener(shake)
         if (mediaPlaying.values.any { it }) {
             try {
                 val title = tabs[current ?: ""]?.title ?: ""
@@ -928,6 +1056,7 @@ class MainActivity : Activity() {
         private const val PICK_FILE = 42
         private const val REQ_MEDIA = 43
         private const val REQ_GEO = 44
+        private const val REQ_VOICE = 45
         /** Låter ljud och video fortsätta när Lumen ligger i bakgrunden, och rapporterar uppspelning. */
         private const val BG_JS = "(function(){try{if(window.__lumenBg)return;window.__lumenBg=1;" +
             "Object.defineProperty(document,'hidden',{get:function(){return false},configurable:true});" +

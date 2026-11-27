@@ -13,6 +13,14 @@ import kotlin.concurrent.thread
  */
 object Blocker {
     @Volatile var enabled = true
+    /** Sidor där användaren har tillåtit annonser. */
+    @Volatile var allowed: Set<String> = emptySet()
+
+    fun pageAllowed(pageHost: String?): Boolean {
+        if (pageHost.isNullOrEmpty()) return false
+        val h = pageHost.lowercase().removePrefix("www.")
+        return allowed.any { h == it || h.endsWith("." + it) }
+    }
     @Volatile private var domains: Set<String> = emptySet()
     private const val LIST_URL = "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
     private const val WEEK = 7L * 24 * 60 * 60 * 1000

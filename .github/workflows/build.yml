@@ -31,8 +31,17 @@ jobs:
       - name: Bygg APK
         working-directory: android
         run: gradle assembleRelease --no-daemon --stacktrace
+      - name: Bygg paket för Google Play (AAB)
+        working-directory: android
+        run: gradle bundleRelease --no-daemon
       - name: Döp om
-        run: cp android/app/build/outputs/apk/release/app-release.apk Lumen-android.apk
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk Lumen-android.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab Lumen-google-play.aab
+      - uses: actions/upload-artifact@v4
+        with:
+          name: google-play
+          path: Lumen-google-play.aab
       - uses: actions/upload-artifact@v4
         with:
           name: android

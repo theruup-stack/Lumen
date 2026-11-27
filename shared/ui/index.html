@@ -266,7 +266,7 @@ html.private .ptag{display:inline-block}
 /* Lumen 2 */
 .c-blue{--c:var(--c-blue)}.c-orange{--c:var(--c-orange)}.c-green{--c:var(--c-green)}.c-purple{--c:var(--c-purple)}.c-red{--c:var(--c-red)}.c-teal{--c:var(--c-teal)}.c-gray{--c:var(--sub)}
 #morebtn{--c:var(--c-blue)}
-.moreg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:6px 14px 18px}
+.moreg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:6px 14px 18px;max-height:min(68vh,620px);overflow-y:auto}
 .mi{display:flex;flex-direction:column;align-items:center;gap:7px;padding:10px 4px;border-radius:16px;font-size:12.5px;line-height:1.2;text-align:center;color:var(--ink)}
 .mi span{width:50px;height:50px;border-radius:15px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--c)}
 .mi svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
@@ -359,6 +359,15 @@ html.private .ptag{display:inline-block}
 .ovcl .qr{min-height:50px;border-radius:14px;padding:0 12px}.ovcl .qr .ico{width:28px;height:28px;border-radius:8px;font-size:13px}.ovcl .qr .tx b{font-size:15px}
 .dl{border-radius:14px;position:relative}.dl .ext{width:40px;height:40px;border-radius:11px;flex:none;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff;background:linear-gradient(150deg,#ff9a2e,#e0218a)}
 .dl:disabled{opacity:1}.dlbar{position:absolute;left:66px;right:16px;bottom:6px;height:3px;border-radius:2px;background:var(--field);overflow:hidden}.dlbar i{display:block;height:100%;background:var(--c-blue)}
+.mic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:var(--c-blue);flex:none}.mic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.aibar{display:flex;align-items:flex-start;gap:10px;padding:10px 6px 10px 16px;background:linear-gradient(135deg,color-mix(in srgb,#7a5cff 10%,var(--win)),color-mix(in srgb,#ff5f8a 8%,var(--win)));border-bottom:1px solid var(--line);cursor:pointer}
+.aibar[hidden]{display:none}.aispark{font-size:16px;line-height:1.5;background:linear-gradient(135deg,#2f7bff,#e0218a);-webkit-background-clip:text;color:transparent;flex:none}
+.aitxt{flex:1;font-size:14.5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.aibar.open .aitxt{-webkit-line-clamp:unset}.aibar.busy .aitxt{color:var(--sub)}
+.aibar .ib{width:34px;height:34px;flex:none}
+.sitehd{display:flex;align-items:center;gap:14px;padding:6px 4px 14px}.sitehd .ico{width:44px;height:44px;border-radius:12px}.sitehd b{font-size:18px}
+.zb{width:44px;height:40px;border-radius:12px;background:var(--win);font-weight:700}.zv{min-width:56px;text-align:center;font-size:15px}
+.rli{border-radius:14px;cursor:pointer}.rli.read .tx b{color:var(--sub);font-weight:400}.rli .ib{width:36px;height:36px;color:var(--sub)}
+.dvh{display:flex;align-items:center;justify-content:space-between;gap:8px}.dvh .pill{height:32px;font-size:13px;padding:0 12px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -371,7 +380,7 @@ html.private .ptag{display:inline-block}
    <button class="ib" id="back" aria-label="Bakåt"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
    <button class="ib" id="fwd" aria-label="Framåt"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
    <form class="addr" id="addrf" novalidate><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-    <span class="ptag">Privat</span><span class="stag" id="stag" hidden></span><input id="addr" type="text" inputmode="url" enterkeyhint="go" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Sök eller ange webbplats" aria-label="Adressfält"><button type="button" class="shield" id="shield" hidden aria-label="Blockerade annonser och spårare"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span id="shc">0</span></button></form><div class="tdots" id="tdots"></div>
+    <span class="ptag">Privat</span><span class="stag" id="stag" hidden></span><input id="addr" type="text" inputmode="url" enterkeyhint="go" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Sök eller ange webbplats" aria-label="Adressfält"><button type="button" class="mic" id="mic" hidden aria-label="Röstsökning"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button><button type="button" class="shield" id="shield" hidden aria-label="Blockerade annonser och spårare"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span id="shc">0</span></button></form><div class="tdots" id="tdots"></div>
    <button class="ib bmb" id="bmbtn" aria-label="Bokmärken – håll inne för att spara sidan" title="Tryck: bokmärken · Håll inne: spara sidan"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button>
    <button class="ib" id="home" aria-label="Startsida"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg></button>
    <button class="ib" id="tabsbtn" aria-label="Visa flikar"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="13" height="13" rx="3"/><path d="M8 4h9a3 3 0 0 1 3 3v9"/></svg></button>
@@ -379,6 +388,7 @@ html.private .ptag{display:inline-block}
   </div>
  <div class="findbar" id="findbar"><input id="fq" type="search" placeholder="Sök på sidan" autocomplete="off" aria-label="Sök på sidan"><span id="fcount"></span><button class="ib" id="fprev" aria-label="Föregående"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button><button class="ib" id="fnext" aria-label="Nästa"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button><button class="lnk" id="fdone" style="color:var(--blue);font-weight:600;height:44px;padding:0 8px">Klar</button></div>
  </div>
+ <div class="aibar" id="aibar" hidden><span class="aispark">✦</span><span class="aitxt"></span><button class="ib" id="aiclose" aria-label="Dölj"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
  <main class="view" id="view"></main>
 </div></div>
 <div class="ov" id="ov" role="dialog" aria-label="Flikar"><div class="spbar" id="spbar"></div><div class="ovg" id="ovg"></div><div id="ovclosed"></div>
@@ -427,6 +437,9 @@ html.private .ptag{display:inline-block}
 <div class="bm" id="devs" role="dialog" aria-label="Andra enheter"><div class="qc" style="grid-template-rows:auto 1fr"><div class="qh"><b style="flex:1">Andra enheter</b><button class="ib" id="devclose" aria-label="Stäng"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="qs" id="devb" style="padding:0 12px 18px"></div></div></div>
 <div class="bm" id="tidy" role="dialog" aria-label="Städa bokmärken"><div class="sc"><div class="qh"><b style="flex:1">Städa bokmärken</b><button class="ib" id="tidyclose" aria-label="Stäng"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="sl" id="tidyb"></div></div></div>
 <div class="bm" id="dls" role="dialog" aria-label="Nedladdningar"><div class="qc" style="grid-template-rows:auto 1fr"><div class="qh"><b style="flex:1;font-size:22px">Nedladdningar</b><button class="ib" id="dlclose" aria-label="Stäng"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="qs" id="dlb" style="padding:0 12px 18px"></div></div></div>
+<div class="bm" id="site" role="dialog" aria-label="Den här sidan"><div class="sc"><div class="qh"><b style="flex:1">Den här sidan</b><button class="ib" id="siteclose" aria-label="Stäng"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="sl" id="siteb"></div></div></div>
+<div class="bm" id="sites" role="dialog" aria-label="Webbplatser"><div class="qc" style="grid-template-rows:auto 1fr"><div class="qh"><b style="flex:1;font-size:22px">Webbplatser</b><button class="ib" id="sitesclose" aria-label="Stäng"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="qs" id="sitesb" style="padding:0 12px 18px"></div></div></div>
+<div class="bm" id="rl" role="dialog" aria-label="Läslista"><div class="qc" style="grid-template-rows:auto 1fr"><div class="qh"><b style="flex:1;font-size:22px">Läslista</b><button class="ib" id="rlclose" aria-label="Stäng"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="qs" id="rlb" style="padding:0 12px 18px"></div></div></div>
 <div class="toast" id="toast" role="status"><span id="tmsg"></span><button id="tact"></button></div>
 <script>
 {
@@ -440,13 +453,13 @@ tabs=[newTab()];
 const tab=()=>tabs[cur],entry=()=>tab().hist[tab().idx];
 const isUrl=s=>/^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i.test(s.trim())&&!/\s/.test(s.trim());
 const title=e=>e.type==='focus'?'Fokusläge':e.type==='start'?'Startsida':e.type==='search'?e.q:(e.title||e.host);
-const HOST=(()=>{const a=window.LumenHost,d=window.lumenHost;if(a)return{show:(t,u,p,sp)=>a.show(String(t),u||'',!!p,String(sp||'')),run:(t,c,r)=>a.run(String(t),c,String(r)),fetch:(u,r)=>a.fetch(u,String(r)),find:(t,q)=>a.find(String(t),q),findNext:(t,f)=>a.findNext(String(t),!!f),findClear:t=>a.findClear(String(t)),setDesktop:(t,o)=>a.setDesktop(String(t),!!o),share:(u,ti)=>a.share(u,ti||''),addToHome:t=>a.addToHome(String(t)),downloads:r=>a.downloads(String(r)),openDownload:id=>a.openDownload(String(id)),setAdblock:b=>a.setAdblock(!!b),checkUpdate:()=>a.checkUpdate(),update:()=>a.update(),version:(()=>{try{return a.version()}catch(e){return ''}})(),close:t=>a.close(String(t)),back:t=>a.back(String(t)),fwd:t=>a.fwd(String(t)),reload:t=>a.reload(String(t)),layout:(x,y,w,h)=>a.layout(x,y,w,h),visible:b=>a.visible(!!b),platform:'android'};return d||null})();
+const HOST=(()=>{const a=window.LumenHost,d=window.lumenHost;if(a)return{show:(t,u,p,sp)=>a.show(String(t),u||'',!!p,String(sp||'')),run:(t,c,r)=>a.run(String(t),c,String(r)),fetch:(u,r)=>a.fetch(u,String(r)),find:(t,q)=>a.find(String(t),q),findNext:(t,f)=>a.findNext(String(t),!!f),findClear:t=>a.findClear(String(t)),setDesktop:(t,o)=>a.setDesktop(String(t),!!o),share:(u,ti)=>a.share(u,ti||''),setAdAllow:l=>a.setAdAllow(JSON.stringify(l||[])),sitePerms:r=>a.sitePerms(String(r)),resetSite:h=>a.resetSite(String(h)),setDark:(t,o)=>a.setDark(String(t),!!o),setDarkDefault:o=>a.setDarkDefault(!!o),setZoom:(t,p)=>a.setZoom(String(t),p|0),voice:r=>a.voice(String(r)),scanQr:r=>a.scanQr(String(r)),print:t=>a.print(String(t)),addToHome:t=>a.addToHome(String(t)),downloads:r=>a.downloads(String(r)),openDownload:id=>a.openDownload(String(id)),setAdblock:b=>a.setAdblock(!!b),checkUpdate:()=>a.checkUpdate(),update:()=>a.update(),version:(()=>{try{return a.version()}catch(e){return ''}})(),close:t=>a.close(String(t)),back:t=>a.back(String(t)),fwd:t=>a.fwd(String(t)),reload:t=>a.reload(String(t)),layout:(x,y,w,h)=>a.layout(x,y,w,h),visible:b=>a.visible(!!b),platform:'android'};return d||null})();
 if(HOST){document.documentElement.classList.add('app');if(HOST.platform==='darwin')document.documentElement.classList.add('mac')}
 const ENGINE='https://duckduckgo.com/?q=';
 function go(e){const t=tab();if(!HOST&&e.type==='url')addHist(e.url,'',t.priv);t.hist=t.hist.slice(0,t.idx+1);t.hist.push(e);t.idx++;render()}
 function submit(raw){let s=raw.trim();if(!s)return;{const t=s.replace(/\s*\.\s*/g,'.').replace(/\s*\/\s*/g,'/');if(t!==s&&isUrl(t))s=t}
  if(isUrl(s)){const url=/^https?:\/\//i.test(s)?s:'https://'+s;let host=url;try{host=new URL(url).hostname}catch(e){}go({type:'url',url,host})}
- else{if(!tab().priv){recent=[s,...recent.filter(r=>r!==s)].slice(0,8);store.set('lumen-recent',recent)}if(HOST)go({type:'url',url:engineUrl(s),host:'Sök: '+s,title:s});else go({type:'search',q:s})}}
+ else{if(!tab().priv){recent=[s,...recent.filter(r=>r!==s)].slice(0,8);store.set('lumen-recent',recent)}if(HOST){go({type:'url',url:engineUrl(s),host:'Sök: '+s,title:s});if(!tab().priv)aiAnswer(entry())}else go({type:'search',q:s})}}
 function renderTabs(){
  $('tabrow').innerHTML=tabs.map((t,i)=>`<div class="tab${i===cur?' on':''}${t.priv?' pv':''}" data-i="${i}" role="button" tabindex="0"><span>${esc(title(t.hist[t.idx]))}</span>${tabs.length>1?`<button class="x" data-x="${i}" aria-label="Stäng flik">×</button>`:''}</div>`).join('');
  $('ovg').innerHTML=tabs.map((t,i)=>`<button class="card${i===cur?' on':''}${t.priv?' pv':''}" data-i="${i}"><strong>${esc(title(t.hist[t.idx]))}</strong><small>${t.priv?'Privat flik':t.hist[t.idx].type==='search'?'Lumen Sök':t.hist[t.idx].type==='url'?'Webbplats':'Ny flik'}</small></button>`).join('');
@@ -466,7 +479,7 @@ function render(){let e=entry();if(e.type==='url'&&typeof focusBlocked==='functi
  else if(e.type==='url'&&HOST){v.innerHTML='';v.classList.add('web')}
  else if(e.type==='url')v.innerHTML=`<div class="page"><div class="globe"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></div><h1>${esc(e.host)}</h1><p class="lead">Webbplatser öppnas säkert i ett eget fönster utanför Lumen.</p><a class="open" href="${esc(e.url)}" target="_blank" rel="noopener">Öppna ${esc(e.host)}</a></div>`;
  else renderSearch(e);
- appSync();if(typeof saveTabs==='function')saveTabs()}
+ appSync();if(typeof saveTabs==='function')saveTabs();if(typeof renderAi==='function')renderAi()}
 function startHTML(){if(tab().priv)return `<div class="start pstart"><div class="pico"><svg viewBox="0 0 24 24"><path d="M3 12c2.5-4 5.5-6 9-6s6.5 2 9 6c-2.5 4-5.5 6-9 6s-6.5-2-9-6z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></svg></div><h1>Privat surfning</h1><p class="lead">Lumen sparar ingen historik och inga sökningar från privata flikar. När du stänger den sista privata fliken raderas kakor och inloggningar från dem.</p><form class="big" id="bigf"><input id="bigq" type="search" placeholder="Sök privat" aria-label="Sök" autocomplete="off"><button class="go">Sök</button></form></div>`;
  return `<div class="start"><button class="gear${canUpdate()&&upd.state==='available'?' dot':''}" id="gear" aria-label="Inställningar"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
  ${updCard()}${HOST?devCard():''}
@@ -673,7 +686,7 @@ $('bmimp').addEventListener('change',async ev=>{const file=ev.target.files[0];ev
  $('bmsync').textContent='Synkas med ditt konto – finns på alla dina enheter'}catch(e){}})();
 /* ===== App-läge: sidor öppnas i Lumens egen webbmotor ===== */
 function goBack(){const t=tab();if(HOST&&entry().type==='url'&&t.nb){HOST.back(t.id);return true}if(t.idx>0){t.idx--;render();return true}return false}
-const OVL=['ql','bm','ov','imp','set','more','reader','ask','devs','tidy','dls'];
+const OVL=['ql','bm','ov','imp','set','more','reader','ask','devs','tidy','dls','site','sites','rl'];
 function anyOverlay(){return OVL.some(id=>$(id).classList.contains('on'))}
 let lastRect='';
 function appSync(){if(!HOST)return;const e=entry();
@@ -694,6 +707,7 @@ window.lumenEvent=d=>{const t=tabs.find(x=>String(x.id)===String(d.tab));if(!t)r
  if(e.type==='url'&&d.url&&/^https?:/i.test(d.url)&&focusBlocked(d.url)){e.url=d.url;if(t===tab())render();return}
  if(e.type==='url'&&d.url&&/^https?:/i.test(d.url)){e.url=d.url;try{e.host=new URL(d.url).hostname}catch(x){}if(d.title)e.title=d.title;if((+d.progress||100)>=100||d.title)addHist(d.url,d.title,t.priv)}
  if(typeof saveTabs==='function'&&t===tab())saveTabs();
+ if(d.url&&/^https?:/i.test(d.url)&&typeof applySite==='function')applySite(t,d.url);
  if(typeof d.blocked==='number'){const prev=t.blk||0;if(d.blocked>prev){abTotal+=d.blocked-prev;clearTimeout(abT);abT=setTimeout(()=>store.set('lumen-abtot',abTotal),2000)}t.blk=d.blocked}
  if(t===tab()){if(document.activeElement!==$('addr'))$('addr').value=e.type==='url'?e.url:$('addr').value;renderTabs();
   const p=$('prog'),v=+d.progress||100;p.style.width=v+'%';p.classList.toggle('on',v<100);clearTimeout(progT);if(v>=100)progT=setTimeout(()=>{p.style.width='0'},450)}};
@@ -753,15 +767,23 @@ function renderSet(){
  ${HOST?syncHTML():''}
  ${HOST?`<section id="sec-ai"><h4>Fråga sidan (Claude)</h4><div class="srow"><span>API-nyckel från Anthropic<i>${aiKey?'Ansluten – nyckeln sparas bara på den här enheten':'Skapa en nyckel på console.anthropic.com'}</i><input type="password" id="aik" placeholder="sk-ant-…" value="" autocomplete="off" style="width:100%;margin-top:8px"></span><button class="pill" id="aisave">${aiKey?'Byt':'Spara'}</button></div></section>`:''}
  ${focusHTMLset()}
+ ${HOST?`<section><h4>Webbplatser</h4>${HOST.setDark?`<label class="srow"><span>Mörkt läge för alla sidor<i>När telefonen är i mörkt läge blir även ljusa sidor mörka</i></span><input type="checkbox" class="sw" id="sdk" ${SET.dark?'checked':''}></label>`:''}
+ ${HOST.platform==='android'?`<label class="srow"><span>Skaka för att öppna stängd flik</span><input type="checkbox" class="sw" id="ssh" ${SET.shake!==false?'checked':''}></label>`:''}
+ ${aiKey?`<label class="srow"><span>Lumen-svar vid sökning<i>Ett kort svar från Claude ovanför sökresultaten</i></span><input type="checkbox" class="sw" id="sai" ${SET.aiSearch!==false?'checked':''}></label>`:''}
+ <div class="srow"><span>Inställningar per webbplats<i>Annonser, textstorlek, behörigheter och data</i></span><button class="pill ghost" id="sitesbtn">Hantera</button></div></section>`:''}
  <section><h4>Historik</h4><div class="srow"><span>${hist.length.toLocaleString('sv-SE')} ${hist.length===1?'besökt sida':'besökta sidor'}<i>Privata flikar sparas aldrig</i></span><button class="pill ghost" id="hclear">Rensa</button></div></section>
  ${['available','downloading','permission','installing'].includes(upd.state)?'':updHTML()}
  <section><h4>Om Lumen</h4><div class="srow"><span>Lumen ${esc(HOST&&HOST.version||'webb')}<i>Webbläsare och sökmotor</i></span></div></section>`}
 $('setb').addEventListener('change',ev=>{const id=ev.target.id;
+ if(id==='sdk'){SET.dark=ev.target.checked;store.set('lumen-set',SET);HOST.setDarkDefault&&HOST.setDarkDefault(SET.dark);for(const t of [...tabs,...Object.values(spaceTabs).flatMap(x=>x.tabs)]){const h=pageHost((t.hist[t.idx]||{}).url||'');HOST.setDark(t.id,SET.dark&&!darkOff.includes(h))}toast(SET.dark?'Mörkt läge för sidor är på':'Mörkt läge för sidor är av');return}
+ if(id==='ssh'){SET.shake=ev.target.checked;store.set('lumen-set',SET);return}
+ if(id==='sai'){SET.aiSearch=ev.target.checked;store.set('lumen-set',SET);return}
  if(id==='fon'){FOCUS.on=ev.target.checked;saveFocus();toast(FOCUS.on?'Fokusläget är på':'Fokusläget är av');renderSet();return}
  if(id==='fsites'){FOCUS.sites=ev.target.value.split(/[ ,]+/).map(x=>x.trim().toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/.*$/,'')).filter(Boolean);saveFocus();return}
  if(id==='ffrom'||id==='fto'){FOCUS[id==='ffrom'?'from':'to']=ev.target.value||FOCUS[id==='ffrom'?'from':'to'];saveFocus();return}
  if(ev.target.id==='abt'){SET.ab=ev.target.checked;store.set('lumen-set',SET);HOST&&HOST.setAdblock&&HOST.setAdblock(SET.ab);toast(SET.ab?'Annonsblockering på':'Annonsblockering av – ladda om sidan')}});
 $('setb').addEventListener('click',ev=>{const t=ev.target.closest('button');if(!t)return;
+ if(t.id==='sitesbtn'){$('set').classList.remove('on');openSites();return}
  if(t.dataset.eng){SET.engine=t.dataset.eng;store.set('lumen-set',SET);engineLabel();renderSet();toast('Sökmotor: '+eng().n);return}
  if(t.dataset.fday){const d=+t.dataset.fday;FOCUS.days=FOCUS.days.includes(d)?FOCUS.days.filter(x=>x!==d):[...FOCUS.days,d];saveFocus();t.classList.toggle('on');return}
  if(t.id==='aisave'){const v=$('aik').value.trim();if(!v){$('aik').focus();return}aiKey=v;store.set('lumen-aikey',v);toast('Claude är inkopplat');renderSet();return}
@@ -781,7 +803,7 @@ function syncHTML(){if(syn&&syn.token)return `<section><h4>Synk mellan enheter</
 function syncSoon(){if(!HOST||!syn||!syn.token)return;clearTimeout(syncT);syncT=setTimeout(()=>syncNow(false),4000)}
 async function gh(path,opt){const r=await fetch('https://api.github.com'+path,Object.assign({},opt,{headers:{'Authorization':'Bearer '+syn.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'}}));
  if(!r.ok){const e=new Error('http');e.status=r.status;throw e}return r.json()}
-function payload(){devices[devId]={name:devName(),ts:Date.now(),tabs:myTabs()};return JSON.stringify({v:1,bm:{folders:bm.folders,items:bm.items,del:bm.del},hist:hist.slice(0,1500),hmeta,devices})}
+function payload(){devices[devId]={name:devName(),ts:Date.now(),tabs:myTabs()};return JSON.stringify({v:1,bm:{folders:bm.folders,items:bm.items,del:bm.del},hist:hist.slice(0,1500),hmeta,devices,sent:typeof sent!=='undefined'?sent:[]})}
 function mergeIn(r){if(!r||typeof r!=='object')return;
  if(r.devices&&typeof r.devices==='object'){for(const[k,v]of Object.entries(r.devices))if(k!==devId&&v&&typeof v==='object'&&(!devices[k]||(+v.ts||0)>(+devices[k].ts||0)))devices[k]={name:String(v.name||'Enhet').slice(0,40),ts:+v.ts||0,tabs:Array.isArray(v.tabs)?v.tabs.slice(0,20).map(t=>({u:String(t.u||''),t:String(t.t||'')})).filter(t=>/^https?:/.test(t.u)):[]};store.set('lumen-devices',devices)}const rb=clean(r.bm||{});
  const del=Object.assign({},bm.del);for(const[k,v]of Object.entries(rb.del))del[k]=Math.max(del[k]||0,v);
@@ -790,7 +812,9 @@ function mergeIn(r){if(!r||typeof r!=='object')return;
  bm=clean({folders:[...fm.values()].filter(f=>f.id==='fav'||!(del['f:'+f.id]>(f.mt||0))),items:[...im.values()].filter(i=>!(del[i.id]>t(i))),del});
  const rm=r.hmeta&&typeof r.hmeta==='object'?r.hmeta:{del:{},clr:0};hmeta.clr=Math.max(+hmeta.clr||0,+rm.clr||0);for(const[k,v]of Object.entries(rm.del||{}))hmeta.del[k]=Math.max(hmeta.del[k]||0,+v||0);
  const hm=new Map();for(const h of[...(Array.isArray(r.hist)?r.hist:[]),...hist])if(h&&h.u&&+h.ts&&!hm.has(h.ts))hm.set(+h.ts,{u:String(h.u),t:String(h.t||''),ts:+h.ts});
- hist=[...hm.values()].filter(h=>h.ts>hmeta.clr&&!hmeta.del[h.ts]).sort((a,b)=>b.ts-a.ts).slice(0,3000)}
+ hist=[...hm.values()].filter(h=>h.ts>hmeta.clr&&!hmeta.del[h.ts]).sort((a,b)=>b.ts-a.ts).slice(0,3000)
+ if(Array.isArray(r.sent)&&typeof sent!=='undefined'){const ids=new Set(sent.map(x=>x.id));for(const x of r.sent)if(x&&x.id&&!ids.has(x.id)&&/^https?:/.test(String(x.u)))sent.push({id:String(x.id),to:String(x.to),u:String(x.u),t:String(x.t||''),from:String(x.from||'Enhet').slice(0,40),ts:+x.ts||0});
+  sent=sent.filter(x=>Date.now()-x.ts<7*864e5).sort((a,b)=>b.ts-a.ts).slice(0,40);store.set('lumen-sent',sent);setTimeout(receiveSent,0)}}
 async function syncNow(loud){if(!HOST||!syn||!syn.token||syncing)return;syncing=true;
  try{if(!syn.gist){const list=await gh('/gists?per_page=100');const g=list.find(x=>x.description==='Lumen synk'&&x.files&&x.files['lumen.json']);
    if(g)syn.gist=g.id;else{const c=await gh('/gists',{method:'POST',body:JSON.stringify({description:'Lumen synk',public:false,files:{'lumen.json':{content:payload()}}})});syn.gist=c.id}}
@@ -998,7 +1022,7 @@ function devCard(){const now=Date.now();const d=Object.entries(devices).filter((
 function openDevs(){const list=Object.entries(devices).filter(([k,v])=>k!==devId&&v&&v.tabs).sort((a,b)=>b[1].ts-a[1].ts);
  $('devb').innerHTML=!syn||!syn.token?`<div class="qe"><div><b>Slå på synk först</b>Koppla Lumen till GitHub under Inställningar → Synk mellan enheter, på båda enheterna.</div></div>`:
   !list.length?`<div class="qe"><div><b>Inga andra enheter än</b>Öppna Lumen på datorn med samma synknyckel, så dyker flikarna upp här.</div></div>`:
-  list.map(([k,v])=>`<section><div class="qg">${esc(v.name)} · ${ago(v.ts)}</div>${v.tabs.map(t=>`<a class="qr" href="${esc(/^https?:/.test(t.u)?t.u:'#')}">${icon({title:t.t,url:t.u})}<span class="tx"><b>${esc(t.t||hostOf(t.u))}</b><i>${esc(hostOf(t.u))}</i></span></a>`).join('')}</section>`).join('');
+  list.map(([k,v])=>`<section><div class="qg dvh"><span>${esc(v.name)} · ${ago(v.ts)}</span>${isWeb()?`<button class="pill ghost" data-send="${esc(k)}">Skicka hit</button>`:''}</div>${v.tabs.map(t=>`<a class="qr" href="${esc(/^https?:/.test(t.u)?t.u:'#')}">${icon({title:t.t,url:t.u})}<span class="tx"><b>${esc(t.t||hostOf(t.u))}</b><i>${esc(hostOf(t.u))}</i></span></a>`).join('')}</section>`).join('');
  $('devs').classList.add('on');if(syn&&syn.token)syncNow(false)}
 $('devclose').onclick=()=>$('devs').classList.remove('on');
 $('devs').addEventListener('click',ev=>{if(ev.target===$('devs'))$('devs').classList.remove('on')});
@@ -1144,6 +1168,109 @@ $('more').addEventListener('click',ev=>{const b=ev.target.closest('[data-more]')
  else if(k==='dls'){$('more').classList.remove('on');openDls()}
  else if(k==='reopen'){$('more').classList.remove('on');if(closed.length)reopenClosed(0);else toast('Inga stängda flikar')}},true);
 
+/* ===================== Lumen 4: sidinställningar, läslista, gester m.m. ===================== */
+const pageHost=u=>{try{return new URL(u).hostname.replace(/^www\./,'')}catch(e){return ''}};
+let adAllow=store.get('lumen-adallow',[]);if(!Array.isArray(adAllow))adAllow=[];
+let zooms=store.get('lumen-zoom',{});if(!zooms||typeof zooms!=='object')zooms={};
+let darkOff=store.get('lumen-darkoff',[]);if(!Array.isArray(darkOff))darkOff=[];
+const pushAllow=()=>{if(HOST&&HOST.setAdAllow)HOST.setAdAllow(adAllow)};
+pushAllow();if(HOST&&HOST.setDarkDefault)HOST.setDarkDefault(!!SET.dark);
+/* Tillämpa sidans inställningar när värden byts i en flik */
+function applySite(t,url){if(!HOST)return;const h=pageHost(url);if(!h||t.lastHost===h)return;t.lastHost=h;
+ if(HOST.setZoom)HOST.setZoom(t.id,zooms[h]||100);if(HOST.setDark)HOST.setDark(t.id,!!SET.dark&&!darkOff.includes(h))}
+
+/* ---- Sidinställningar (den här sidan) ---- */
+let siteHost='';
+async function openSite(host){const e=entry();siteHost=host||pageHost(e.url||'');if(!siteHost){toast('Öppna en webbplats först');return}
+ const cur=!host||pageHost(e.url||'')===siteHost,secure=cur?/^https:/.test(e.url):true,blk=cur?(tab().blk||0):0;
+ let perms=[];if(HOST&&HOST.sitePerms){const raw=await hostCall(HOST.sitePerms);try{perms=(typeof raw==='string'?JSON.parse(raw):raw||[]).filter(p=>p.host.replace(/^www\./,'')===siteHost)}catch(x){}}
+ const z=zooms[siteHost]||100,ads=!adAllow.includes(siteHost);
+ $('siteb').innerHTML=`<div class="sitehd">${icon({title:siteHost,url:'https://'+siteHost})}<span class="tx"><b>${esc(siteHost)}</b><i class="${secure?'ok':'err'}">${secure?'🔒 Säker anslutning':'Anslutningen är inte säker'}</i></span></div>
+ ${HOST?`<label class="srow"><span>Blockera annonser och spårare<i>${ads?(cur?`${blk} blockerade på sidan`:'På'):'Tillåtna på den här sidan'}</i></span><input type="checkbox" class="sw" id="sads" ${ads?'checked':''}></label>`:''}
+ ${HOST&&HOST.setZoom?`<div class="srow"><span>Textstorlek<i>Sparas för ${esc(siteHost)}</i></span><button class="ib zb" data-zoom="-10">A−</button><b class="zv">${z} %</b><button class="ib zb" data-zoom="10">A+</button></div>`:''}
+ ${HOST&&HOST.setDark?`<label class="srow"><span>Mörkt läge för sidan<i>${SET.dark?'Gäller när telefonen är i mörkt läge':'Slå på ”Mörkt läge för alla sidor” i Inställningar'}</i></span><input type="checkbox" class="sw" id="sdark" ${SET.dark&&!darkOff.includes(siteHost)?'checked':''} ${SET.dark?'':'disabled'}></label>`:''}
+ ${perms.length?`<div class="srow"><span>Behörigheter<i>${perms.map(p=>`${esc(p.what)}: ${p.allowed?'tillåten':'nekad'}`).join(' · ')}</i></span></div>`:''}
+ ${HOST&&HOST.resetSite?`<div class="srow"><span>Radera data för sidan<i>Kakor, inloggningar och sparade behörigheter</i></span><button class="pill ghost" id="sreset">Radera</button></div>`:''}`;
+ $('site').classList.add('on')}
+$('siteclose').onclick=()=>$('site').classList.remove('on');
+$('site').addEventListener('click',ev=>{if(ev.target===$('site')){$('site').classList.remove('on');return}const b=ev.target.closest('button');if(!b)return;
+ if(b.dataset.zoom){const z=Math.max(50,Math.min(250,(zooms[siteHost]||100)+ +b.dataset.zoom));if(z===100)delete zooms[siteHost];else zooms[siteHost]=z;store.set('lumen-zoom',zooms);
+  b.parentElement.querySelector('.zv').textContent=z+' %';for(const t of tabs)if(pageHost(t.hist[t.idx].url||'')===siteHost&&HOST.setZoom)HOST.setZoom(t.id,z)}
+ else if(b.id==='sreset'){HOST.resetSite(siteHost);delete zooms[siteHost];store.set('lumen-zoom',zooms);toast('Data för '+siteHost+' raderades');$('site').classList.remove('on')}});
+$('site').addEventListener('change',ev=>{const id=ev.target.id;
+ if(id==='sads'){adAllow=ev.target.checked?adAllow.filter(h=>h!==siteHost):[...new Set([...adAllow,siteHost])];store.set('lumen-adallow',adAllow);pushAllow();toast(ev.target.checked?'Annonser blockeras igen':'Annonser tillåts på '+siteHost,'Ladda om',()=>HOST&&HOST.reload(tab().id))}
+ if(id==='sdark'){darkOff=ev.target.checked?darkOff.filter(h=>h!==siteHost):[...new Set([...darkOff,siteHost])];store.set('lumen-darkoff',darkOff);for(const t of tabs){if(pageHost(t.hist[t.idx].url||'')===siteHost&&HOST.setDark)HOST.setDark(t.id,ev.target.checked)}}});
+$('shield').onclick=()=>openSite();
+
+/* ---- Alla webbplatser ---- */
+async function openSites(){let perms=[];if(HOST&&HOST.sitePerms){const raw=await hostCall(HOST.sitePerms);try{perms=typeof raw==='string'?JSON.parse(raw):(raw||[])}catch(e){}}
+ const hosts=new Set([...adAllow,...Object.keys(zooms),...darkOff,...perms.map(p=>p.host.replace(/^www\./,''))]);
+ $('sitesb').innerHTML=hosts.size?[...hosts].sort().map(h=>{const d=[];if(adAllow.includes(h))d.push('annonser tillåtna');if(zooms[h])d.push('text '+zooms[h]+' %');if(darkOff.includes(h))d.push('ljust läge');perms.filter(p=>p.host.replace(/^www\./,'')===h).forEach(p=>d.push(p.what+(p.allowed?' ✓':' ✕')));
+  return `<button class="qr" data-site="${esc(h)}">${icon({title:h,url:'https://'+h})}<span class="tx"><b>${esc(h)}</b><i>${esc(d.join(' · '))}</i></span></button>`}).join(''):'<div class="qe"><div><b>Inga särskilda inställningar</b>Sidor där du ändrat annonser, textstorlek eller behörigheter visas här.</div></div>';
+ $('sites').classList.add('on')}
+$('sitesclose').onclick=()=>$('sites').classList.remove('on');
+$('sites').addEventListener('click',ev=>{if(ev.target===$('sites'))$('sites').classList.remove('on');const b=ev.target.closest('[data-site]');if(b){$('sites').classList.remove('on');openSite(b.dataset.site)}});
+
+/* ---- Röstsökning och QR-kod ---- */
+if(HOST&&HOST.voice){$('mic').hidden=false;$('mic').onclick=async ev=>{ev.preventDefault();const t=await hostCall(HOST.voice);if(t){$('addr').value=t;submit(t)}}}
+async function scanQr(){const t=await hostCall(HOST.scanQr);if(!t)return;if(/^https?:\/\//i.test(t))lumenNewTab(t,false);else if(isUrl(t))lumenNewTab('https://'+t,false);else{$('addr').value=t;submit(t)}}
+
+/* ---- Läslista utan nät ---- */
+let rdb=null;try{const r=indexedDB.open('lumen-read',1);r.onupgradeneeded=()=>r.result.createObjectStore('items',{keyPath:'id'});r.onsuccess=()=>{rdb=r.result}}catch(e){}
+const rlAll=()=>new Promise(res=>{try{if(!rdb)return res([]);const q=rdb.transaction('items').objectStore('items').getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([])}catch(e){res([])}});
+const rlPut=v=>{try{rdb&&rdb.transaction('items','readwrite').objectStore('items').put(v)}catch(e){}};
+const rlDel=id=>{try{rdb&&rdb.transaction('items','readwrite').objectStore('items').delete(id)}catch(e){}};
+async function saveOffline(){if(!isWeb())return;const raw=await runIn(tab().id,READ_JS);let d=null;try{d=JSON.parse(raw)}catch(e){}
+ if(!d||!d.items||d.items.filter(x=>x[0]==='P').length<2){toast('Sidan kan inte sparas som artikel');return}
+ d.items=d.items.filter(x=>x[0]!=='IMG');rlPut({id:rid(),url:entry().url,title:d.title,site:d.site,by:d.by,items:d.items,ts:Date.now(),read:false});toast('Sparad i läslistan','Visa',openRl)}
+async function openRl(){const list=(await rlAll()).sort((a,b)=>b.ts-a.ts);
+ $('rlb').innerHTML=list.length?list.map(a=>`<div class="qr rli${a.read?' read':''}" data-rl="${esc(a.id)}" role="button" tabindex="0">${icon({title:a.site,url:'https://'+a.site})}<span class="tx"><b>${esc(a.title)}</b><i>${esc(a.site)} · ${Math.max(1,Math.round(a.items.reduce((n,x)=>n+x[1].split(/\s+/).length,0)/220))} min · ${ago(a.ts)}</i></span><button class="ib" data-rldel="${esc(a.id)}" aria-label="Ta bort">${SVG('<path d="M6 6l12 12M18 6L6 18"/>')}</button></div>`).join('')
+  :'<div class="qe"><div><b>Läslistan är tom</b>Välj ⋯ → Spara offline på en artikel för att läsa den utan nät.</div></div>';
+ $('rl').classList.add('on');$('rl')._list=list}
+$('rlclose').onclick=()=>$('rl').classList.remove('on');
+$('rl').addEventListener('click',ev=>{if(ev.target===$('rl')){$('rl').classList.remove('on');return}const d=ev.target.closest('[data-rldel]');if(d){ev.stopPropagation();rlDel(d.dataset.rldel);setTimeout(openRl,60);return}
+ const r=ev.target.closest('[data-rl]');if(!r)return;const a=($('rl')._list||[]).find(x=>x.id===r.dataset.rl);if(!a)return;a.read=true;rlPut(a);$('rl').classList.remove('on');showReader(a)});
+function showReader(d){const box=$('rbody');box.textContent='';const h=document.createElement('h1');h.textContent=d.title;box.append(h);
+ const meta=document.createElement('p');meta.className='rmeta';meta.textContent=[d.site,d.by].filter(Boolean).join(' · ');box.append(meta);let list=null;
+ for(const[tg,t]of d.items){if(tg==='LI'){if(!list){list=document.createElement('ul');box.append(list)}const li=document.createElement('li');li.textContent=t;list.append(li);continue}list=null;
+  if(tg==='IMG')continue;const el=document.createElement(tg==='H1'?'h2':tg.toLowerCase());el.textContent=t;box.append(el)}
+ applyReader();$('reader').classList.add('on');$('reader').scrollTop=0}
+
+/* ---- Lumen-svar vid sökning (Claude) ---- */
+async function aiAnswer(e){if(!aiKey||SET.aiSearch===false)return;e.ai={q:e.title,text:'',busy:true};renderAi();
+ try{const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':aiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+   body:JSON.stringify({model:'claude-haiku-5-5',max_tokens:400,system:'Du är Lumens sökassistent. Ge ett direkt svar på svenska i 2–4 meningar på sökningen. Om frågan kräver aktuell information du inte har, säg det kort och hänvisa till sökresultaten nedanför.',messages:[{role:'user',content:e.title}]})});
+  const j=await r.json();e.ai.text=r.ok?(j.content||[]).map(c=>c.text||'').join('').trim():'Kunde inte hämta Lumen-svar.'}catch(x){e.ai.text='Kunde inte nå Claude.'}
+ e.ai.busy=false;renderAi()}
+function renderAi(){const e=entry(),b=$('aibar');const show=!!(HOST&&e.type==='url'&&e.ai&&!e.ai.hide&&!typing);b.hidden=!show;
+ if(show){b.querySelector('.aitxt').textContent=e.ai.busy?'Tänker …':e.ai.text;b.classList.toggle('busy',!!e.ai.busy)}}
+$('aibar').addEventListener('click',ev=>{const e=entry();if(ev.target.closest('#aiclose')){if(e.ai)e.ai.hide=true;renderAi();return}$('aibar').classList.toggle('open')});
+
+/* ---- Skicka flik till annan enhet ---- */
+let sent=store.get('lumen-sent',[]),seenSent=store.get('lumen-seen',[]);if(!Array.isArray(sent))sent=[];if(!Array.isArray(seenSent))seenSent=[];
+function sendTab(to){const e=entry();if(e.type!=='url'){toast('Öppna en sida först');return}sent.unshift({id:rid(),to,u:e.url,t:e.title||e.host,from:devName(),ts:Date.now()});sent=sent.slice(0,40);store.set('lumen-sent',sent);
+ toast('Skickad till '+((devices[to]||{}).name||'enheten'));syncNow(false)}
+function receiveSent(){const mine=sent.filter(s=>s.to===devId&&!seenSent.includes(s.id)&&Date.now()-s.ts<7*864e5);for(const s of mine){seenSent.push(s.id);lumenNewTab(s.u,false);toast('Flik från '+s.from)}
+ if(mine.length){seenSent=seenSent.slice(-200);store.set('lumen-seen',seenSent)}}
+$('devb').addEventListener('click',ev=>{const b=ev.target.closest('[data-send]');if(b){ev.preventDefault();ev.stopPropagation();sendTab(b.dataset.send)}},true);
+
+/* ---- Gester: svep upp på adressfältet = flikar, skaka = öppna stängd flik ---- */
+{let sx=0,sy=0;const a=$('addrf');a.addEventListener('touchstart',e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY},{passive:true});
+ a.addEventListener('touchend',e=>{const t=e.changedTouches[0];if(sy-t.clientY>45&&Math.abs(t.clientX-sx)<40&&document.activeElement!==$('addr')){renderTabs();renderSpaces();$('ov').classList.add('on')}},{passive:true})}
+window.lumenShake=()=>{if(SET.shake===false||!closed.length||anyOverlay())return;reopenClosed(0)};
+
+/* ---- Fler val i Mer-menyn ---- */
+MORE.splice(MORE.findIndex(m=>m.k==='find'),0,{k:'site',t:'Den här sidan',c:'green',i:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',web:1});
+MORE.splice(MORE.findIndex(m=>m.k==='dls')+1,0,
+ {k:'offline',t:'Spara offline',c:'blue',i:'<path d="M12 4v10M8 10l4 4 4-4"/><path d="M4 18h16"/>',web:1,need:'run'},
+ {k:'rl',t:'Läslista',c:'orange',i:'<path d="M4 5h7a3 3 0 0 1 3 3v11a2 2 0 0 0-2-2H4z"/><path d="M20 5h-4a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h4z"/>'},
+ {k:'pdf',t:'Spara som PDF',c:'red',i:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 14h6M9 17h4"/>',web:1,need:'print'},
+ {k:'qr',t:'Skanna QR-kod',c:'teal',i:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v7h-7"/>',need:'scanQr'},
+ {k:'sendto',t:'Skicka till enhet',c:'purple',i:'<path d="M4 12l16-8-6 16-2-6z"/>',web:1,app:1});
+$('more').addEventListener('click',ev=>{const b=ev.target.closest('[data-more]');if(!b||b.disabled)return;const k=b.dataset.more;const close=()=>$('more').classList.remove('on');
+ if(k==='site'){close();openSite()}else if(k==='offline'){close();saveOffline()}else if(k==='rl'){close();openRl()}else if(k==='pdf'){close();HOST.print(tab().id)}else if(k==='qr'){close();scanQr()}else if(k==='sendto'){close();openDevs()}},true);
+
+$('addr').addEventListener('focus',()=>setTimeout(renderAi,0));
 tabs.forEach(t=>{t.space=curSpace});renderSpaces();updWatchDot();engineLabel();
 render();
 window.claude?.use?.('sample').then(s=>{sample=s;if(entry().type==='search'&&!entry().data)render()}).catch(()=>{});
