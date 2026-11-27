@@ -3,6 +3,17 @@ package se.lumen.browser
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.AlertDialog
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.pm.ShortcutInfo
+import android.content.pm.ShortcutManager
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Typeface
+import android.graphics.drawable.Icon
+import android.os.Handler
+import android.os.Looper
+import androidx.webkit.WebViewFeature as WVF
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -66,6 +77,7 @@ class MainActivity : Activity() {
     private lateinit var ui: WebView
     private val tabs = LinkedHashMap<String, WebView>()
     private val boxes = LinkedHashMap<String, SwipeRefreshLayout>()
+    private val mediaPlaying = ConcurrentHashMap<String, Boolean>()
     private var current: String? = null
     private var showContent = false
     private var area = IntArray(4) // x, y, bredd, höjd i pixlar
@@ -155,7 +167,7 @@ class MainActivity : Activity() {
         if (uiReady) open(url) else pendingUrl = url
     }
 
-    private fun open(url: String) = js("window.lumenOpen&&lumenOpen(${JSONObject.quote(url)})")
+    private fun open(url: String) = js("window.lumenNewTab?lumenNewTab(${JSONObject.quote(url)},false):(window.lumenOpen&&lumenOpen(${JSONObject.quote(url)}))")
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun setup(w: WebView) {
@@ -207,6 +219,17 @@ class MainActivity : Activity() {
             } catch (e: Throwable) { }
         }
         setup(w)
+        w.addJavascriptInterface(object {
+            @JavascriptInterface
+            fun state(playing: Boolean) {
+                mediaPlaying[id] = playing
+                if (!mediaPlaying.values.any { it }) runOnUiThread { stopService(Intent(this@MainActivity, AudioService::class.java)) }
+            }
+        }, "LumenMedia")
+        try {
+            if (WVF.isFeatureSupported(WVF.DOCUMENT_START_SCRIPT)) WebViewCompat.addDocumentStartJavaScript(w, BG_JS, setOf("*"))
+        } catch (e: Throwable) { }
+        w.setOnLongClickListener { longPress(id, w) }
         if (priv) {
             w.settings.cacheMode = WebSettings.LOAD_NO_CACHE
             w.settings.saveFormData = false
@@ -241,6 +264,7 @@ class MainActivity : Activity() {
             }
             override fun onPageFinished(view: WebView, url: String) {
                 box.isRefreshing = false
+                if (!WVF.isFeatureSupported(WVF.DOCUMENT_START_SCRIPT)) view.evaluateJavascript(BG_JS, null)
                 emit(id)
                 ui.postDelayed({ thumbnail(id) }, 1500)
             }
@@ -257,21 +281,7 @@ class MainActivity : Activity() {
         w.setFindListener { active, count, done ->
             if (done) js("window.lumenFind&&lumenFind(${JSONObject().put("tab", id).put("index", if (count > 0) active + 1 else 0).put("count", count)})")
         }
-        w.setDownloadListener { url, userAgent, contentDisposition, mimeType, _ ->
-            try {
-                val name = URLUtil.guessFileName(url, contentDisposition, mimeType)
-                val req = DownloadManager.Request(Uri.parse(url))
-                    .setMimeType(mimeType)
-                    .addRequestHeader("User-Agent", userAgent)
-                    .addRequestHeader("Cookie", CookieManager.getInstance().getCookie(url) ?: "")
-                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                    .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name)
-                (getSystemService(DOWNLOAD_SERVICE) as DownloadManager).enqueue(req)
-                Toast.makeText(this, "Laddar ner $name", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                openExternal(url)
-            }
-        }
+        w.setDownloadListener { url, userAgent, contentDisposition, mimeType, _ -> startDownload(url, userAgent, contentDisposition, mimeType) }
         root.addView(box, params())
         w
     }
@@ -304,6 +314,115 @@ class MainActivity : Activity() {
         o.put("progress", w.progress)
         o.put("blocked", blockedCount[id]?.get() ?: 0)
         js("window.lumenEvent&&lumenEvent($o)")
+    }
+
+    private fun startDownload(url: String, userAgent: String?, contentDisposition: String?, mimeType: String?) {
+        try {
+            val name = URLUtil.guessFileName(url, contentDisposition, mimeType)
+            val req = DownloadManager.Request(Uri.parse(url))
+                .setTitle(name)
+                .addRequestHeader("User-Agent", userAgent ?: browserUserAgent)
+                .addRequestHeader("Cookie", CookieManager.getInstance().getCookie(url) ?: "")
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name)
+            if (!mimeType.isNullOrEmpty()) req.setMimeType(mimeType)
+            (getSystemService(DOWNLOAD_SERVICE) as DownloadManager).enqueue(req)
+            js("window.lumenDownloadStarted&&lumenDownloadStarted(${JSONObject.quote(name)})")
+        } catch (e: Exception) {
+            openExternal(url)
+        }
+    }
+
+    /* ---------- Håll inne på länkar och bilder ---------- */
+    private fun longPress(id: String, w: WebView): Boolean {
+        val r = w.hitTestResult
+        var link: String? = null
+        var img: String? = null
+        when (r.type) {
+            WebView.HitTestResult.SRC_ANCHOR_TYPE -> link = r.extra
+            WebView.HitTestResult.IMAGE_TYPE -> img = r.extra
+            WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE -> {
+                img = r.extra
+                val msg = Handler(Looper.getMainLooper()).obtainMessage()
+                w.requestFocusNodeHref(msg)
+                link = msg.data.getString("url")
+            }
+            else -> return false
+        }
+        val items = ArrayList<Pair<String, () -> Unit>>()
+        if (!link.isNullOrEmpty() && (link.startsWith("http:") || link.startsWith("https:"))) {
+            val l = link
+            items.add("Öppna i ny flik" to { js("window.lumenNewTab&&lumenNewTab(${JSONObject.quote(l)},false)") })
+            items.add("Öppna i privat flik" to { js("window.lumenNewTab&&lumenNewTab(${JSONObject.quote(l)},true)") })
+            items.add("Kopiera länk" to { copy(l) })
+            items.add("Dela länk" to { share(l, "") })
+        }
+        if (!img.isNullOrEmpty() && (img.startsWith("http:") || img.startsWith("https:"))) {
+            val i = img
+            items.add("Öppna bild i ny flik" to { js("window.lumenNewTab&&lumenNewTab(${JSONObject.quote(i)},false)") })
+            items.add("Spara bild" to { startDownload(i, null, null, null) })
+            items.add("Kopiera bildadress" to { copy(i) })
+        }
+        if (items.isEmpty()) return false
+        val title = (link ?: img)?.let { Uri.parse(it).host } ?: ""
+        AlertDialog.Builder(this)
+            .setTitle(title)
+            .setItems(items.map { it.first }.toTypedArray()) { _, which -> items[which].second() }
+            .show()
+        return true
+    }
+
+    private fun copy(text: String) {
+        (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("Länk", text))
+        Toast.makeText(this, "Kopierad", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun share(url: String, title: String) {
+        try {
+            val i = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, url)
+            if (title.isNotEmpty()) i.putExtra(Intent.EXTRA_SUBJECT, title)
+            startActivity(Intent.createChooser(i, "Dela"))
+        } catch (e: Exception) { }
+    }
+
+    /** Lägg en genväg till sidan på hemskärmen. */
+    private fun addToHome(id: String) {
+        val w = tabs[id] ?: return
+        val url = w.url ?: return
+        val host = Uri.parse(url).host?.removePrefix("www.") ?: "Sida"
+        val label = (w.title?.takeIf { it.isNotBlank() } ?: host).take(24)
+        val size = 192
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        val fav = w.favicon
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        if (fav != null && fav.width >= 24) {
+            p.color = Color.WHITE
+            c.drawRoundRect(RectF(0f, 0f, size.toFloat(), size.toFloat()), 44f, 44f, p)
+            val s = 112
+            c.drawBitmap(Bitmap.createScaledBitmap(fav, s, s, true), ((size - s) / 2).toFloat(), ((size - s) / 2).toFloat(), Paint(Paint.FILTER_BITMAP_FLAG))
+        } else {
+            val hue = (host.hashCode() and 0x7fffffff) % 360
+            p.color = Color.HSVToColor(floatArrayOf(hue.toFloat(), .62f, .82f))
+            c.drawRoundRect(RectF(0f, 0f, size.toFloat(), size.toFloat()), 44f, 44f, p)
+            p.color = Color.WHITE
+            p.textSize = 96f
+            p.typeface = Typeface.DEFAULT_BOLD
+            p.textAlign = Paint.Align.CENTER
+            c.drawText(label.take(1).uppercase(), size / 2f, size / 2f + 34f, p)
+        }
+        val sm = getSystemService(ShortcutManager::class.java)
+        if (sm == null || !sm.isRequestPinShortcutSupported) {
+            Toast.makeText(this, "Hemskärmen stöder inte genvägar", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val intent = Intent(this, MainActivity::class.java).setAction(Intent.ACTION_VIEW).setData(Uri.parse(url))
+        val info = ShortcutInfo.Builder(this, "site-" + url.hashCode())
+            .setShortLabel(label)
+            .setIcon(Icon.createWithBitmap(bmp))
+            .setIntent(intent)
+            .build()
+        sm.requestPinShortcut(info, null)
     }
 
     /** Liten bild av sidan till den visuella historiken. */
@@ -566,6 +685,53 @@ class MainActivity : Activity() {
         fun findClear(id: String) = runOnUiThread { tabs[id]?.clearMatches() }
 
         @JavascriptInterface
+        fun share(url: String, title: String) = runOnUiThread { this@MainActivity.share(url, title) }
+
+        @JavascriptInterface
+        fun addToHome(id: String) = runOnUiThread { this@MainActivity.addToHome(id) }
+
+        @JavascriptInterface
+        fun downloads(req: String) {
+            thread(name = "lumen-downloads") {
+                val arr = org.json.JSONArray()
+                try {
+                    val dm = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+                    dm.query(DownloadManager.Query()).use { c ->
+                        while (c.moveToNext()) {
+                            val o = JSONObject()
+                            o.put("id", c.getLong(c.getColumnIndexOrThrow(DownloadManager.COLUMN_ID)).toString())
+                            o.put("name", c.getString(c.getColumnIndexOrThrow(DownloadManager.COLUMN_TITLE)) ?: "")
+                            o.put("status", when (c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))) {
+                                DownloadManager.STATUS_SUCCESSFUL -> "done"
+                                DownloadManager.STATUS_FAILED -> "failed"
+                                DownloadManager.STATUS_PAUSED -> "paused"
+                                else -> "running"
+                            })
+                            o.put("got", c.getLong(c.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)))
+                            o.put("total", c.getLong(c.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)))
+                            o.put("ts", c.getLong(c.getColumnIndexOrThrow(DownloadManager.COLUMN_LAST_MODIFIED_TIMESTAMP)))
+                            arr.put(o)
+                        }
+                    }
+                } catch (e: Exception) { }
+                result(req, arr.toString())
+            }
+        }
+
+        @JavascriptInterface
+        fun openDownload(id: String) = runOnUiThread {
+            try {
+                val dm = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+                val n = id.toLong()
+                val uri = dm.getUriForDownloadedFile(n) ?: return@runOnUiThread
+                val mime = dm.getMimeTypeForDownloadedFile(n) ?: "*/*"
+                startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK))
+            } catch (e: Exception) {
+                Toast.makeText(this@MainActivity, "Ingen app kan öppna filen", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        @JavascriptInterface
         fun setDesktop(id: String, on: Boolean) = runOnUiThread {
             tabs[id]?.let {
                 it.settings.userAgentString = if (on) desktopUserAgent else browserUserAgent
@@ -703,6 +869,7 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        stopService(Intent(this, AudioService::class.java))
         if (pendingInstall && (Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls())) installUpdate()
         else if (uiReady && System.currentTimeMillis() - lastCheck > 6 * 60 * 60 * 1000L) checkUpdate(false)
     }
@@ -741,6 +908,12 @@ class MainActivity : Activity() {
 
     override fun onPause() {
         super.onPause()
+        if (mediaPlaying.values.any { it }) {
+            try {
+                val title = tabs[current ?: ""]?.title ?: ""
+                startForegroundService(Intent(this, AudioService::class.java).putExtra("title", title))
+            } catch (e: Exception) { }
+        }
         CookieManager.getInstance().flush()
     }
 
@@ -755,6 +928,13 @@ class MainActivity : Activity() {
         private const val PICK_FILE = 42
         private const val REQ_MEDIA = 43
         private const val REQ_GEO = 44
+        /** Låter ljud och video fortsätta när Lumen ligger i bakgrunden, och rapporterar uppspelning. */
+        private const val BG_JS = "(function(){try{if(window.__lumenBg)return;window.__lumenBg=1;" +
+            "Object.defineProperty(document,'hidden',{get:function(){return false},configurable:true});" +
+            "Object.defineProperty(document,'visibilityState',{get:function(){return 'visible'},configurable:true});" +
+            "var stop=function(e){e.stopImmediatePropagation()};window.addEventListener('visibilitychange',stop,true);document.addEventListener('visibilitychange',stop,true);" +
+            "var rep=function(){try{var a=[].slice.call(document.querySelectorAll('video,audio')).some(function(m){return !m.paused&&!m.ended&&!m.muted&&m.readyState>2});LumenMedia.state(a)}catch(x){}};" +
+            "['play','playing','pause','ended','volumechange','emptied'].forEach(function(t){document.addEventListener(t,rep,true)});window.addEventListener('pagehide',function(){try{LumenMedia.state(false)}catch(x){}})}catch(e){}})();"
         private const val PRIVATE_PROFILE = "lumen-private"
         private const val RELEASES_API = "https://api.github.com/repos/theruup-stack/Lumen-releases/releases/latest"
     }

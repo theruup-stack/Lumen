@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('lumenHost', {
   find: (tab, q) => send('find', String(tab), q),
   findNext: (tab, fwd) => send('findNext', String(tab), !!fwd),
   findClear: (tab) => send('findClear', String(tab)),
+  downloads: (req) => send('downloads', '', String(req)),
+  openDownload: (id) => send('openDownload', String(id)),
   setAdblock: (on) => send('adblock', !!on),
   checkUpdate: () => send('checkUpdate'),
   update: () => send('update'),

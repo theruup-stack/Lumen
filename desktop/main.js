@@ -57,9 +57,18 @@ function isBlocked(host) {
   }
 }
 const guarded = new WeakSet();
+const downloadsList = [];
+let dlSeq = 0;
 function guard(ses) {
   if (guarded.has(ses)) return;
   guarded.add(ses);
+  ses.on('will-download', (e, item) => {
+    const d = { id: String(++dlSeq), name: item.getFilename(), status: 'running', got: 0, total: item.getTotalBytes(), ts: Date.now(), path: '' };
+    downloadsList.unshift(d);
+    run(`window.lumenDownloadStarted&&lumenDownloadStarted(${JSON.stringify(d.name)})`);
+    item.on('updated', (ev, state) => { d.got = item.getReceivedBytes(); d.total = item.getTotalBytes(); d.status = state === 'interrupted' ? 'paused' : 'running'; });
+    item.once('done', (ev, state) => { d.got = item.getReceivedBytes(); d.path = item.getSavePath(); d.status = state === 'completed' ? 'done' : 'failed'; d.ts = Date.now(); });
+  });
   const asked = new Map();
   ses.setPermissionRequestHandler((wc, permission, cb, details) => {
     if (permission === 'fullscreen' || permission === 'clipboard-sanitized-write') return cb(true);
@@ -212,7 +221,7 @@ function shortcut(e, input) {
   const k = (input.key || '').toLowerCase();
   if (mod && ['t', 'l', 'b', 'd', 'r', 'w'].includes(k)) {
     e.preventDefault();
-    run(`window.lumenKey&&lumenKey(${JSON.stringify(k)})`);
+    run(`window.lumenKey&&lumenKey(${JSON.stringify(input.shift && k === 't' ? 'T' : k)})`);
   } else if (input.key === 'F5') {
     e.preventDefault();
     run("window.lumenKey&&lumenKey('r')");
@@ -274,7 +283,9 @@ function tab(id, priv, space) {
       { label: 'Ladda om', click: () => wc.reload() },
       { type: 'separator' }
     ];
-    if (p.linkURL) items.push({ label: 'Öppna länk', click: () => wc.loadURL(p.linkURL) }, { label: 'Kopiera länk', click: () => require('electron').clipboard.writeText(p.linkURL) });
+    const nt = (u, priv) => run(`window.lumenNewTab&&lumenNewTab(${JSON.stringify(u)},${priv ? 'true' : 'false'})`);
+    if (p.linkURL) items.push({ label: 'Öppna länk i ny flik', click: () => nt(p.linkURL, false) }, { label: 'Öppna i privat flik', click: () => nt(p.linkURL, true) }, { label: 'Kopiera länk', click: () => require('electron').clipboard.writeText(p.linkURL) }, { type: 'separator' });
+    if (p.mediaType === 'image' && p.srcURL) items.push({ label: 'Öppna bild i ny flik', click: () => nt(p.srcURL, false) }, { label: 'Spara bild som …', click: () => wc.downloadURL(p.srcURL) }, { label: 'Kopiera bildadress', click: () => require('electron').clipboard.writeText(p.srcURL) }, { type: 'separator' });
     if (p.selectionText) items.push({ label: 'Kopiera', role: 'copy' });
     if (p.isEditable) items.push({ label: 'Klistra in', role: 'paste' });
     Menu.buildFromTemplate(items).popup();
@@ -327,6 +338,8 @@ ipcMain.on('lumen', (e, cmd, ...a) => {
       break;
     }
     case 'adblock': adblock = !!a[0]; break;
+    case 'downloads': run(`window.lumenResult&&lumenResult(${JSON.stringify(a[1])},${JSON.stringify(JSON.stringify(downloadsList.map(({ path, ...r }) => r)))})`); break;
+    case 'openDownload': { const d = downloadsList.find((x) => x.id === id); if (d && d.path) shell.openPath(d.path); break; }
     case 'run': {
       const v = tabs.get(id);
       const req = a[2];

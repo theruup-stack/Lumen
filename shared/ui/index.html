@@ -355,6 +355,10 @@ html.private .ptag{display:inline-block}
 .ql .qs.bmmode .chg{font-size:0;width:9px;height:9px;padding:0;border-radius:50%;margin-right:4px}
 .ql .qs .qr:hover,.ql .qs .qr:active{background:var(--field)}
 .ql .rail span{color:var(--sub);font-weight:500}
+.ovcl{max-width:900px;margin:22px auto 0}.ovcl h4{margin:0 0 6px 6px;font-size:13px;color:var(--sub)}
+.ovcl .qr{min-height:50px;border-radius:14px;padding:0 12px}.ovcl .qr .ico{width:28px;height:28px;border-radius:8px;font-size:13px}.ovcl .qr .tx b{font-size:15px}
+.dl{border-radius:14px;position:relative}.dl .ext{width:40px;height:40px;border-radius:11px;flex:none;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff;background:linear-gradient(150deg,#ff9a2e,#e0218a)}
+.dl:disabled{opacity:1}.dlbar{position:absolute;left:66px;right:16px;bottom:6px;height:3px;border-radius:2px;background:var(--field);overflow:hidden}.dlbar i{display:block;height:100%;background:var(--c-blue)}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -377,7 +381,7 @@ html.private .ptag{display:inline-block}
  </div>
  <main class="view" id="view"></main>
 </div></div>
-<div class="ov" id="ov" role="dialog" aria-label="Flikar"><div class="spbar" id="spbar"></div><div class="ovg" id="ovg"></div>
+<div class="ov" id="ov" role="dialog" aria-label="Flikar"><div class="spbar" id="spbar"></div><div class="ovg" id="ovg"></div><div id="ovclosed"></div>
  <div class="ovbar"><button class="ib" id="ovnew" aria-label="Ny flik"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button><button class="pill ghost" id="ovpriv">+ Privat flik</button><span id="ovcount" style="color:var(--sub);font-size:14px"></span><button class="done" id="ovdone">Klar</button></div></div>
 <div class="bm" id="bm" role="dialog" aria-modal="true" aria-label="Bokmärken"><div class="sheet">
  <div class="sh-h"><h2>Bokmärken<small id="bmcount"></small></h2><button class="pill" id="bmadd">+ Lägg till</button><button class="ib" id="bmclose" aria-label="Stäng"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
@@ -422,6 +426,7 @@ html.private .ptag{display:inline-block}
  <div class="askout" id="askout"></div></div></div></div>
 <div class="bm" id="devs" role="dialog" aria-label="Andra enheter"><div class="qc" style="grid-template-rows:auto 1fr"><div class="qh"><b style="flex:1">Andra enheter</b><button class="ib" id="devclose" aria-label="Stäng"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="qs" id="devb" style="padding:0 12px 18px"></div></div></div>
 <div class="bm" id="tidy" role="dialog" aria-label="Städa bokmärken"><div class="sc"><div class="qh"><b style="flex:1">Städa bokmärken</b><button class="ib" id="tidyclose" aria-label="Stäng"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="sl" id="tidyb"></div></div></div>
+<div class="bm" id="dls" role="dialog" aria-label="Nedladdningar"><div class="qc" style="grid-template-rows:auto 1fr"><div class="qh"><b style="flex:1;font-size:22px">Nedladdningar</b><button class="ib" id="dlclose" aria-label="Stäng"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="qs" id="dlb" style="padding:0 12px 18px"></div></div></div>
 <div class="toast" id="toast" role="status"><span id="tmsg"></span><button id="tact"></button></div>
 <script>
 {
@@ -435,17 +440,18 @@ tabs=[newTab()];
 const tab=()=>tabs[cur],entry=()=>tab().hist[tab().idx];
 const isUrl=s=>/^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i.test(s.trim())&&!/\s/.test(s.trim());
 const title=e=>e.type==='focus'?'Fokusläge':e.type==='start'?'Startsida':e.type==='search'?e.q:(e.title||e.host);
-const HOST=(()=>{const a=window.LumenHost,d=window.lumenHost;if(a)return{show:(t,u,p,sp)=>a.show(String(t),u||'',!!p,String(sp||'')),run:(t,c,r)=>a.run(String(t),c,String(r)),fetch:(u,r)=>a.fetch(u,String(r)),find:(t,q)=>a.find(String(t),q),findNext:(t,f)=>a.findNext(String(t),!!f),findClear:t=>a.findClear(String(t)),setDesktop:(t,o)=>a.setDesktop(String(t),!!o),setAdblock:b=>a.setAdblock(!!b),checkUpdate:()=>a.checkUpdate(),update:()=>a.update(),version:(()=>{try{return a.version()}catch(e){return ''}})(),close:t=>a.close(String(t)),back:t=>a.back(String(t)),fwd:t=>a.fwd(String(t)),reload:t=>a.reload(String(t)),layout:(x,y,w,h)=>a.layout(x,y,w,h),visible:b=>a.visible(!!b),platform:'android'};return d||null})();
+const HOST=(()=>{const a=window.LumenHost,d=window.lumenHost;if(a)return{show:(t,u,p,sp)=>a.show(String(t),u||'',!!p,String(sp||'')),run:(t,c,r)=>a.run(String(t),c,String(r)),fetch:(u,r)=>a.fetch(u,String(r)),find:(t,q)=>a.find(String(t),q),findNext:(t,f)=>a.findNext(String(t),!!f),findClear:t=>a.findClear(String(t)),setDesktop:(t,o)=>a.setDesktop(String(t),!!o),share:(u,ti)=>a.share(u,ti||''),addToHome:t=>a.addToHome(String(t)),downloads:r=>a.downloads(String(r)),openDownload:id=>a.openDownload(String(id)),setAdblock:b=>a.setAdblock(!!b),checkUpdate:()=>a.checkUpdate(),update:()=>a.update(),version:(()=>{try{return a.version()}catch(e){return ''}})(),close:t=>a.close(String(t)),back:t=>a.back(String(t)),fwd:t=>a.fwd(String(t)),reload:t=>a.reload(String(t)),layout:(x,y,w,h)=>a.layout(x,y,w,h),visible:b=>a.visible(!!b),platform:'android'};return d||null})();
 if(HOST){document.documentElement.classList.add('app');if(HOST.platform==='darwin')document.documentElement.classList.add('mac')}
 const ENGINE='https://duckduckgo.com/?q=';
 function go(e){const t=tab();if(!HOST&&e.type==='url')addHist(e.url,'',t.priv);t.hist=t.hist.slice(0,t.idx+1);t.hist.push(e);t.idx++;render()}
 function submit(raw){let s=raw.trim();if(!s)return;{const t=s.replace(/\s*\.\s*/g,'.').replace(/\s*\/\s*/g,'/');if(t!==s&&isUrl(t))s=t}
  if(isUrl(s)){const url=/^https?:\/\//i.test(s)?s:'https://'+s;let host=url;try{host=new URL(url).hostname}catch(e){}go({type:'url',url,host})}
- else{if(!tab().priv){recent=[s,...recent.filter(r=>r!==s)].slice(0,8);store.set('lumen-recent',recent)}if(HOST)go({type:'url',url:ENGINE+encodeURIComponent(s),host:'Sök: '+s,title:s});else go({type:'search',q:s})}}
+ else{if(!tab().priv){recent=[s,...recent.filter(r=>r!==s)].slice(0,8);store.set('lumen-recent',recent)}if(HOST)go({type:'url',url:engineUrl(s),host:'Sök: '+s,title:s});else go({type:'search',q:s})}}
 function renderTabs(){
  $('tabrow').innerHTML=tabs.map((t,i)=>`<div class="tab${i===cur?' on':''}${t.priv?' pv':''}" data-i="${i}" role="button" tabindex="0"><span>${esc(title(t.hist[t.idx]))}</span>${tabs.length>1?`<button class="x" data-x="${i}" aria-label="Stäng flik">×</button>`:''}</div>`).join('');
  $('ovg').innerHTML=tabs.map((t,i)=>`<button class="card${i===cur?' on':''}${t.priv?' pv':''}" data-i="${i}"><strong>${esc(title(t.hist[t.idx]))}</strong><small>${t.priv?'Privat flik':t.hist[t.idx].type==='search'?'Lumen Sök':t.hist[t.idx].type==='url'?'Webbplats':'Ny flik'}</small></button>`).join('');
  document.documentElement.classList.toggle('private',!!tab().priv);
+ if(typeof closedHTML==='function')$('ovclosed').innerHTML=closedHTML();
  $('tdots').classList.toggle('many',tabs.length>1);$('tdots').innerHTML=tabs.length>1?tabs.map((t,i)=>`<i class="${i===cur?'on':''}"></i>`).join(''):'';
  const bk=entry().type==='url'?(tab().blk||0):0;$('shield').hidden=!bk;$('shc').textContent=bk>99?'99+':bk;
  $('ovcount').textContent=tabs.length+(tabs.length===1?' flik':' flikar');
@@ -460,8 +466,8 @@ function render(){let e=entry();if(e.type==='url'&&typeof focusBlocked==='functi
  else if(e.type==='url'&&HOST){v.innerHTML='';v.classList.add('web')}
  else if(e.type==='url')v.innerHTML=`<div class="page"><div class="globe"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></div><h1>${esc(e.host)}</h1><p class="lead">Webbplatser öppnas säkert i ett eget fönster utanför Lumen.</p><a class="open" href="${esc(e.url)}" target="_blank" rel="noopener">Öppna ${esc(e.host)}</a></div>`;
  else renderSearch(e);
- appSync()}
-function startHTML(){if(tab().priv)return `<div class="start pstart"><div class="pico"><svg viewBox="0 0 24 24"><path d="M3 12c2.5-4 5.5-6 9-6s6.5 2 9 6c-2.5 4-5.5 6-9 6s-6.5-2-9-6z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></svg></div><h1>Privat surfning</h1><p class="lead">Lumen sparar ingen historik och inga sökningar från privata flikar. När du stänger den sista privata fliken raderas kakor och inloggningar från dem.</p><form class="big" id="bigf"><input id="bigq" type="search" placeholder="Sök privat med DuckDuckGo" aria-label="Sök" autocomplete="off"><button class="go">Sök</button></form></div>`;
+ appSync();if(typeof saveTabs==='function')saveTabs()}
+function startHTML(){if(tab().priv)return `<div class="start pstart"><div class="pico"><svg viewBox="0 0 24 24"><path d="M3 12c2.5-4 5.5-6 9-6s6.5 2 9 6c-2.5 4-5.5 6-9 6s-6.5-2-9-6z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></svg></div><h1>Privat surfning</h1><p class="lead">Lumen sparar ingen historik och inga sökningar från privata flikar. När du stänger den sista privata fliken raderas kakor och inloggningar från dem.</p><form class="big" id="bigf"><input id="bigq" type="search" placeholder="Sök privat" aria-label="Sök" autocomplete="off"><button class="go">Sök</button></form></div>`;
  return `<div class="start"><button class="gear${canUpdate()&&upd.state==='available'?' dot':''}" id="gear" aria-label="Inställningar"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
  ${updCard()}${HOST?devCard():''}
  <h1 class="lockup"><img src="lumen-icon-512.png" alt=""><svg class="wm2" viewBox="0 -1592 6518 1694" role="img" aria-label="Lumen" xmlns="http://www.w3.org/2000/svg"><g transform="scale(1,-1)" fill="currentColor"><path transform="translate(0,0)" d="M111 0H1096V264H419V1490H111Z"/><path transform="translate(1145,0)" d="M475 -22C627 -22 734 46 805 166V0H1094V1056H800V469C800 305 715 232 593 232C470 232 399 307 399 449V1056H104V395C104 128 250 -22 475 -22Z"/><path transform="translate(2349,0)" d="M104 0H399V623C399 759 483 835 588 835C691 835 763 764 763 654V0H1047V636C1047 754 1118 835 1232 835C1333 835 1411 773 1411 646V0H1705V700C1705 942 1554 1078 1351 1078C1198 1078 1068 1001 1013 872C969 1001 850 1078 708 1078C574 1078 451 1009 388 866V1056H104Z"/><path transform="translate(4164,0)" d="M586 -24C842 -24 1046 122 1085 332H816C789 250 710 197 595 197C440 197 350 298 345 454H1096V533C1096 855 887 1080 576 1080C273 1080 58 849 58 527C58 206 266 -24 586 -24ZM347 642C363 774 450 856 582 856C715 856 803 774 818 642Z"/><path transform="translate(5319,0)" d="M399 587C399 751 484 824 606 824C729 824 800 749 800 607V0H1094V661C1094 928 949 1078 724 1078C572 1078 465 1010 394 890V1056H104V0H399Z"/></g></svg></h1><p class="lead">Webbläsaren och sökmotorn som svarar direkt.</p>
@@ -487,7 +493,7 @@ results: 4–6 riktiga, välkända webbsidor som garanterat finns (gärna starts
 $('addrf').addEventListener('submit',ev=>{ev.preventDefault();$('addr').blur();submit($('addr').value)});
 $('view').addEventListener('submit',ev=>{if(ev.target.id==='bigf'){ev.preventDefault();submit($('bigq').value)}});
 document.addEventListener('click',ev=>{const c=ev.target.closest('[data-q]');if(c){submit(c.dataset.q);return}
- const x=ev.target.closest('[data-x]');if(x){ev.stopPropagation();const [ct]=tabs.splice(+x.dataset.x,1);if(HOST)HOST.close(ct.id);cur=Math.min(cur,tabs.length-1);render();return}
+ const x=ev.target.closest('[data-x]');if(x){ev.stopPropagation();const [ct]=tabs.splice(+x.dataset.x,1);rememberClosed(ct);if(HOST)HOST.close(ct.id);cur=Math.min(cur,tabs.length-1);render();return}
  const t=ev.target.closest('[data-i]');if(t){cur=+t.dataset.i;$('ov').classList.remove('on');render()}});
 $('back').onclick=()=>{goBack()};
 $('fwd').onclick=()=>{const t=tab();if(HOST&&entry().type==='url'&&t.nf)HOST.fwd(t.id);else if(t.idx<t.hist.length-1){t.idx++;render()}};
@@ -498,7 +504,7 @@ $('tabsbtn').onclick=()=>{renderTabs();renderSpaces();$('ov').classList.add('on'
 $('ovdone').onclick=()=>$('ov').classList.remove('on');
 document.addEventListener('keydown',ev=>{const k=ev.key.toLowerCase(),mod=ev.metaKey||ev.ctrlKey;
  if(ev.key==='Escape'){if($('qm').classList.contains('on'))$('qm').classList.remove('on');else if($('ql').classList.contains('on'))closeQl();else if($('imp').classList.contains('on'))$('imp').classList.remove('on');else if($('ed').classList.contains('on'))closeEd();else if($('bm').classList.contains('on'))closeBm();else $('ov').classList.remove('on')}
- if(mod&&k==='t'){ev.preventDefault();add()}if(mod&&k==='b'){ev.preventDefault();openQl()}if(mod&&k==='d'){ev.preventDefault();addCurrent()}});
+ if(mod&&k==='t'){ev.preventDefault();if(ev.shiftKey)reopenClosed(0);else add()}if(mod&&k==='b'){ev.preventDefault();openQl()}if(mod&&k==='d'){ev.preventDefault();addCurrent()}});
 
 /* ===== Bokmärken ===== */
 const LS='lumen-bm';
@@ -667,7 +673,7 @@ $('bmimp').addEventListener('change',async ev=>{const file=ev.target.files[0];ev
  $('bmsync').textContent='Synkas med ditt konto – finns på alla dina enheter'}catch(e){}})();
 /* ===== App-läge: sidor öppnas i Lumens egen webbmotor ===== */
 function goBack(){const t=tab();if(HOST&&entry().type==='url'&&t.nb){HOST.back(t.id);return true}if(t.idx>0){t.idx--;render();return true}return false}
-const OVL=['ql','bm','ov','imp','set','more','reader','ask','devs','tidy'];
+const OVL=['ql','bm','ov','imp','set','more','reader','ask','devs','tidy','dls'];
 function anyOverlay(){return OVL.some(id=>$(id).classList.contains('on'))}
 let lastRect='';
 function appSync(){if(!HOST)return;const e=entry();
@@ -681,12 +687,13 @@ if(HOST){new ResizeObserver(()=>appSync()).observe($('view'));
 function openUrl(u){let host=u;try{host=new URL(u).hostname}catch(e){}const e=entry();if(e.type==='url'&&HOST){e.url=u;e.host=host;e.title='';HOST.show(tab().id,u,!!tab().priv,tab().space||'main');render()}else go({type:'url',url:u,host})}
 window.lumenOpen=u=>{if(/^https?:\/\//i.test(u))openUrl(u)};
 window.lumenBack=()=>{if($('chrome').classList.contains('finding')){closeFind();return true}if(typing){$('addr').blur();return true}if(anyOverlay()){closeQl();closeBm();OVL.forEach(id=>$(id).classList.remove('on'));return true}return goBack()};
-window.lumenKey=k=>{if(k==='t')add();else if(k==='l'){$('addr').focus();$('addr').select()}else if(k==='b')openQl();else if(k==='d')addCurrent();else if(k==='r'&&HOST)HOST.reload(tab().id);else if(k==='w'&&tabs.length>1){const [ct]=tabs.splice(cur,1);HOST&&HOST.close(ct.id);cur=Math.min(cur,tabs.length-1);render()}};
+window.lumenKey=k=>{if(k==='t')add();else if(k==='l'){$('addr').focus();$('addr').select()}else if(k==='b')openQl();else if(k==='d')addCurrent();else if(k==='r'&&HOST)HOST.reload(tab().id);else if(k==='T')reopenClosed(0);else if(k==='w'&&tabs.length>1){const [ct]=tabs.splice(cur,1);rememberClosed(ct);HOST&&HOST.close(ct.id);cur=Math.min(cur,tabs.length-1);render()}};
 let progT=0;
 window.lumenEvent=d=>{const t=tabs.find(x=>String(x.id)===String(d.tab));if(!t)return;const e=t.hist[t.idx];
  t.nb=!!d.back;t.nf=!!d.fwd;
  if(e.type==='url'&&d.url&&/^https?:/i.test(d.url)&&focusBlocked(d.url)){e.url=d.url;if(t===tab())render();return}
  if(e.type==='url'&&d.url&&/^https?:/i.test(d.url)){e.url=d.url;try{e.host=new URL(d.url).hostname}catch(x){}if(d.title)e.title=d.title;if((+d.progress||100)>=100||d.title)addHist(d.url,d.title,t.priv)}
+ if(typeof saveTabs==='function'&&t===tab())saveTabs();
  if(typeof d.blocked==='number'){const prev=t.blk||0;if(d.blocked>prev){abTotal+=d.blocked-prev;clearTimeout(abT);abT=setTimeout(()=>store.set('lumen-abtot',abTotal),2000)}t.blk=d.blocked}
  if(t===tab()){if(document.activeElement!==$('addr'))$('addr').value=e.type==='url'?e.url:$('addr').value;renderTabs();
   const p=$('prog'),v=+d.progress||100;p.style.width=v+'%';p.classList.toggle('on',v<100);clearTimeout(progT);if(v>=100)progT=setTimeout(()=>{p.style.width='0'},450)}};
@@ -740,7 +747,8 @@ $('set').addEventListener('click',ev=>{if(ev.target===$('set'))$('set').classLis
 $('view').addEventListener('click',ev=>{if(ev.target.closest('#gear'))openSet()});
 const fmtTime=ts=>ts?new Date(ts).toLocaleString('sv-SE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'aldrig';
 function renderSet(){
- $('setb').innerHTML=`${['available','downloading','permission','installing'].includes(upd.state)?updHTML():''}<section><h4>Sökmotor</h4><div class="srow"><span>DuckDuckGo<i>Privat sökning utan spårning</i></span><span class="ok" style="flex:none">✓</span></div></section>
+ $('setb').innerHTML=`${['available','downloading','permission','installing'].includes(upd.state)?updHTML():''}<section><h4>Sökmotor</h4><div class="srow fdays">${Object.entries(ENGINES).map(([k,v])=>`<button class="dchip${(SET.engine||'ddg')===k?' on':''}" data-eng="${k}" style="padding:0 12px">${v.n}</button>`).join('')}</div></section>
+ ${HOST&&HOST.platform==='android'?`<section><h4>Lösenord</h4><div class="srow"><span>Fyll i lösenord automatiskt<i>Lumen använder telefonens autofyll, samma som Chrome. Välj Google som tjänst: Inställningar → Allmän hantering → Lösenord och autofyll → Autofylltjänst → Google. Sedan fylls dina sparade lösenord i när du trycker i inloggningsrutan.</i></span></div></section>`:''}
  ${HOST?`<section><h4>Annonsblockering</h4><label class="srow"><span>Blockera annonser och spårare<i>${abTotal.toLocaleString('sv-SE')} blockerade hittills</i></span><input type="checkbox" class="sw" id="abt" ${SET.ab?'checked':''}></label></section>`:''}
  ${HOST?syncHTML():''}
  ${HOST?`<section id="sec-ai"><h4>Fråga sidan (Claude)</h4><div class="srow"><span>API-nyckel från Anthropic<i>${aiKey?'Ansluten – nyckeln sparas bara på den här enheten':'Skapa en nyckel på console.anthropic.com'}</i><input type="password" id="aik" placeholder="sk-ant-…" value="" autocomplete="off" style="width:100%;margin-top:8px"></span><button class="pill" id="aisave">${aiKey?'Byt':'Spara'}</button></div></section>`:''}
@@ -754,6 +762,7 @@ $('setb').addEventListener('change',ev=>{const id=ev.target.id;
  if(id==='ffrom'||id==='fto'){FOCUS[id==='ffrom'?'from':'to']=ev.target.value||FOCUS[id==='ffrom'?'from':'to'];saveFocus();return}
  if(ev.target.id==='abt'){SET.ab=ev.target.checked;store.set('lumen-set',SET);HOST&&HOST.setAdblock&&HOST.setAdblock(SET.ab);toast(SET.ab?'Annonsblockering på':'Annonsblockering av – ladda om sidan')}});
 $('setb').addEventListener('click',ev=>{const t=ev.target.closest('button');if(!t)return;
+ if(t.dataset.eng){SET.engine=t.dataset.eng;store.set('lumen-set',SET);engineLabel();renderSet();toast('Sökmotor: '+eng().n);return}
  if(t.dataset.fday){const d=+t.dataset.fday;FOCUS.days=FOCUS.days.includes(d)?FOCUS.days.filter(x=>x!==d):[...FOCUS.days,d];saveFocus();t.classList.toggle('on');return}
  if(t.id==='aisave'){const v=$('aik').value.trim();if(!v){$('aik').focus();return}aiKey=v;store.set('lumen-aikey',v);toast('Claude är inkopplat');renderSet();return}
  if(t.id==='hclear')clearHist();
@@ -850,7 +859,7 @@ const MORE=[
  {k:'tidy',t:'Städa bokmärken',c:'red',i:'<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/><path d="M10 11v6M14 11v6"/>'},
  {k:'set',t:'Inställningar',c:'gray',i:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>'}];
 function openMore(){const web=isWeb(),bmk=web&&findBm(entry());
- $('moreg').innerHTML=MORE.filter(m=>(!m.app||HOST)&&(!m.android||(HOST&&HOST.setDesktop))&&!(m.k==='ask'&&!HOST)).map(m=>{
+ $('moreg').innerHTML=MORE.filter(m=>(!m.need||(HOST&&HOST[m.need]))&&(!m.app||HOST)&&(!m.android||(HOST&&HOST.setDesktop))&&!(m.k==='ask'&&!HOST)).map(m=>{
   const dis=m.web&&!web,on=(m.k==='watch'&&bmk&&bmk.watch)||(m.k==='desk'&&tab().desk);
   return `<button class="mi c-${m.c}${on?' on':''}" data-more="${m.k}" ${dis?'disabled':''}><span>${SVG(m.i)}</span>${esc(m.k==='watch'&&on?'Sluta bevaka':m.t)}${on&&m.k==='desk'?' ✓':''}</button>`}).join('');
  $('more').classList.add('on')}
@@ -879,7 +888,7 @@ function suggRows(q){const ql=q.toLowerCase(),rows=[],seen=new Set();
  if(!q){(recent||[]).slice(0,5).forEach(r=>rows.push({k:'s',t:r,s:'Senaste sökning'}));
   bmItems().slice(0,6).forEach(i=>{if(i.url&&!seen.has(i.url)){seen.add(i.url);rows.push({k:'u',t:i.title||hostOf(i.url),u:i.url,s:hostOf(i.url),b:1})}});return rows}
  if(isUrl(q))rows.push({k:'u',t:q,u:/^https?:\/\//i.test(q)?q:'https://'+q,s:'Öppna webbplatsen',go:1});
- rows.push({k:'s',t:q,s:'Sök med DuckDuckGo'});
+ rows.push({k:'s',t:q,s:'Sök med '+eng().n});
  for(const i of bmItems())if(i.url&&!seen.has(i.url)&&(i.title+' '+i.url).toLowerCase().includes(ql)){seen.add(i.url);rows.push({k:'u',t:i.title||hostOf(i.url),u:i.url,s:'Bokmärke · '+hostOf(i.url),b:1});if(rows.length>6)break}
  let n=0;for(const h of hist)if(!seen.has(h.u)&&(h.t+' '+h.u).toLowerCase().includes(ql)){seen.add(h.u);rows.push({k:'u',t:h.t||hostOf(h.u),u:h.u,s:'Historik · '+hostOf(h.u)});if(++n>=4)break}
  ddg.filter(p=>p.toLowerCase()!==ql).slice(0,5).forEach(p=>rows.push({k:'s',t:p,s:'Förslag'}));
@@ -890,8 +899,8 @@ function renderSugg(){const q=$('addr').value.trim(),rows=suggRows(q),v=$('view'
  v._rows=rows}
 $('addr').addEventListener('focus',()=>{typing=true;$('addr').select();renderSugg();appSync&&appSync()});
 $('addr').addEventListener('input',()=>{if(!typing)return;renderSugg();const q=$('addr').value.trim();clearTimeout(suggT);
- if(q.length>1&&!isUrl(q)&&HOST&&HOST.fetch)suggT=setTimeout(async()=>{suggQ=q;const r=await hfetch('https://duckduckgo.com/ac/?q='+encodeURIComponent(q)+'&kl=se-sv');
-  if(suggQ!==q||!r||!r.text)return;try{ddg=JSON.parse(r.text).map(x=>String(x.phrase||'')).filter(Boolean)}catch(e){ddg=[]}if(typing)renderSugg()},220);else ddg=[]});
+ if(q.length>1&&!isUrl(q)&&HOST&&HOST.fetch)suggT=setTimeout(async()=>{suggQ=q;const r=await hfetch(eng().s(q));
+  if(suggQ!==q||!r||!r.text)return;try{ddg=eng().p(r.text).filter(Boolean)}catch(e){ddg=[]}if(typing)renderSugg()},220);else ddg=[]});
 $('addr').addEventListener('blur',()=>setTimeout(()=>{if(document.activeElement===$('addr'))return;typing=false;ddg=[];render()},180));
 $('view').addEventListener('pointerdown',ev=>{const f=ev.target.closest('[data-fill]');if(f){ev.preventDefault();const r=$('view')._rows[+f.dataset.fill];$('addr').value=r.t+' ';$('addr').dispatchEvent(new Event('input'));return}
  const b=ev.target.closest('[data-si]');if(!b||!typing)return;ev.preventDefault();const r=$('view')._rows[+b.dataset.si];typing=false;$('addr').blur();
@@ -1067,7 +1076,75 @@ $('tidyb').addEventListener('click',async ev=>{const b=ev.target.closest('button
 $('tidyclose').onclick=()=>$('tidy').classList.remove('on');
 $('tidy').addEventListener('click',ev=>{if(ev.target===$('tidy'))$('tidy').classList.remove('on')});
 
-tabs.forEach(t=>{t.space=curSpace});renderSpaces();updWatchDot();
+/* ===================== Lumen 3: ersätt Chrome ===================== */
+/* ---- Sökmotor ---- */
+const ENGINES={ddg:{n:'DuckDuckGo',u:'https://duckduckgo.com/?q=',s:q=>'https://duckduckgo.com/ac/?q='+encodeURIComponent(q)+'&kl=se-sv',p:t=>JSON.parse(t).map(x=>String(x.phrase||''))},
+ google:{n:'Google',u:'https://www.google.com/search?hl=sv&q=',s:q=>'https://suggestqueries.google.com/complete/search?client=firefox&hl=sv&q='+encodeURIComponent(q),p:t=>(JSON.parse(t)[1]||[]).map(String)},
+ bing:{n:'Bing',u:'https://www.bing.com/search?setlang=sv&q=',s:q=>'https://api.bing.com/osjson.aspx?query='+encodeURIComponent(q),p:t=>(JSON.parse(t)[1]||[]).map(String)},
+ ecosia:{n:'Ecosia',u:'https://www.ecosia.org/search?q=',s:q=>'https://ac.ecosia.org/autocomplete?type=list&q='+encodeURIComponent(q),p:t=>(JSON.parse(t)[1]||[]).map(String)}};
+const eng=()=>ENGINES[SET.engine]||ENGINES.ddg;
+function engineUrl(q){return eng().u+encodeURIComponent(q)}
+function engineLabel(){$('addr').placeholder='Sök med '+eng().n+' eller ange webbplats'}
+
+/* ---- Spara flikar mellan starter ---- */
+const TKEY='lumen-tabs';
+function snapTab(t){const keep=t.hist.slice(0,t.idx+1).slice(-20);
+ return {space:t.space||'main',idx:keep.length-1,hist:keep.map(e=>e.type==='url'?{type:'url',url:e.url,host:e.host,title:e.title||''}:e.type==='search'?{type:'search',q:e.q}:e.type==='focus'?{type:'url',url:e.url,host:e.host}:{type:'start'})}}
+function saveTabs(){clearTimeout(saveTabs.t);saveTabs.t=setTimeout(()=>{const all=Object.assign({},spaceTabs,{[curSpace]:{tabs,cur}});const out={};
+ for(const[k,v]of Object.entries(all)){const ts=v.tabs.filter(t=>!t.priv);if(!ts.length)continue;const c=v.tabs[v.cur];out[k]={cur:Math.max(0,ts.indexOf(c)),tabs:ts.map(snapTab)}}
+ store.set(TKEY,{space:curSpace,spaces:out})},500)}
+function mk(sn){return {id:uid++,hist:sn.hist.length?sn.hist:[{type:'start'}],idx:Math.min(sn.idx,sn.hist.length-1),priv:false,space:sn.space||'main'}}
+{const saved=store.get(TKEY,null);if(saved&&saved.spaces){for(const[k,v]of Object.entries(saved.spaces)){if(!spaces.some(s=>s.id===k)||!v.tabs||!v.tabs.length)continue;
+  const ts=v.tabs.map(mk);if(k===curSpace){tabs=ts;cur=Math.min(v.cur||0,ts.length-1)}else spaceTabs[k]={tabs:ts,cur:Math.min(v.cur||0,ts.length-1)}}}}
+
+/* ---- Nyligen stängda flikar ---- */
+let closed=store.get('lumen-closed',[]);if(!Array.isArray(closed))closed=[];
+function rememberClosed(t){if(!t||t.priv)return;const e=t.hist[t.idx];if(e.type==='start')return;closed.unshift(Object.assign(snapTab(t),{at:Date.now()}));closed=closed.slice(0,15);store.set('lumen-closed',closed)}
+function reopenClosed(i){const sn=closed[i||0];if(!sn)return;closed.splice(i||0,1);store.set('lumen-closed',closed);
+ if((sn.space||'main')!==curSpace&&spaces.some(s=>s.id===sn.space))switchSpace(sn.space);
+ const t=mk(sn);t.space=curSpace;tabs.push(t);cur=tabs.length-1;$('ov').classList.remove('on');render();toast('Fliken öppnades igen')}
+function closedHTML(){if(!closed.length)return '';return `<div class="ovcl"><h4>Nyligen stängda</h4>${closed.slice(0,6).map((c,i)=>{const e=c.hist[c.idx]||{};const u=e.url||'';
+ return `<button class="qr" data-reopen="${i}">${u?icon({title:e.title||e.host,url:u}):'<span class="sico"></span>'}<span class="tx"><b>${esc(e.title||e.host||e.q||'Flik')}</b><i>${esc(u?hostOf(u):'')} · ${ago(c.at)}</i></span></button>`}).join('')}</div>`}
+document.addEventListener('click',ev=>{const b=ev.target.closest('[data-reopen]');if(b){ev.stopPropagation();reopenClosed(+b.dataset.reopen)}},true);
+
+/* ---- Öppna länk i ny flik (från länkmenyn och andra appar) ---- */
+window.lumenNewTab=(u,priv)=>{if(!/^https?:\/\//i.test(u||''))return;closeQl();closeBm();OVL.forEach(id=>$(id).classList.remove('on'));
+ tabs.push(newTab(!!priv));cur=tabs.length-1;let h=u;try{h=new URL(u).hostname}catch(e){}go({type:'url',url:u,host:h});if(priv)toast('Öppnades i en privat flik')};
+
+/* ---- Översätt sidan ---- */
+function translateUrl(u){try{const x=new URL(u);if(/\.translate\.goog$/.test(x.hostname))return null;
+ const h=x.hostname.replace(/-/g,'--').replace(/\./g,'-');x.hostname=h+'.translate.goog';x.searchParams.set('_x_tr_sl','auto');x.searchParams.set('_x_tr_tl','sv');x.searchParams.set('_x_tr_hl','sv');return x.toString()}catch(e){return null}}
+
+/* ---- Nedladdningar ---- */
+let dlT=0;
+window.lumenDownloadStarted=name=>toast('Laddar ner '+name,'Visa',openDls);
+const fmtBytes=b=>b>=1e9?(b/1e9).toFixed(1).replace('.',',')+' GB':b>=1e6?(b/1e6).toFixed(1).replace('.',',')+' MB':b>=1e3?Math.round(b/1e3)+' kB':(b||0)+' B';
+async function renderDls(){if(!HOST||!HOST.downloads)return;const raw=await hostCall(HOST.downloads);let list=[];try{list=typeof raw==='string'?JSON.parse(raw):(raw||[])}catch(e){}
+ list.sort((a,b)=>(b.ts||0)-(a.ts||0));
+ $('dlb').innerHTML=list.length?list.slice(0,60).map(d=>{const st=d.status==='done'?`${fmtBytes(d.total||d.got)} · ${d.ts?new Date(d.ts).toLocaleDateString('sv-SE',{day:'numeric',month:'short'}):''}`:d.status==='failed'?'Misslyckades':d.status==='paused'?'Pausad':`Laddar ner … ${d.total>0?Math.round(d.got*100/d.total)+' %':fmtBytes(d.got)}`;
+  const ext=(String(d.name).split('.').pop()||'').slice(0,4).toUpperCase();
+  return `<button class="qr dl" data-dl="${esc(d.id)}" ${d.status==='done'?'':'disabled'}><span class="ext">${esc(ext||'FIL')}</span><span class="tx"><b>${esc(d.name||'Fil')}</b><i class="${d.status==='failed'?'err':''}">${esc(st)}</i></span>${d.status==='running'&&d.total>0?`<span class="dlbar"><i style="width:${Math.round(d.got*100/d.total)}%"></i></span>`:''}</button>`}).join('')
+  :'<div class="qe"><div><b>Inga nedladdningar</b>Filer du laddar ner visas här.</div></div>';
+ if($('dls').classList.contains('on')&&list.some(d=>d.status==='running')){clearTimeout(dlT);dlT=setTimeout(renderDls,1200)}}
+function openDls(){$('dls').classList.add('on');renderDls()}
+$('dlclose').onclick=()=>$('dls').classList.remove('on');
+$('dls').addEventListener('click',ev=>{if(ev.target===$('dls'))$('dls').classList.remove('on');const b=ev.target.closest('[data-dl]');if(b&&HOST.openDownload)HOST.openDownload(b.dataset.dl)});
+
+/* ---- Fler val i Mer-menyn ---- */
+MORE.splice(MORE.findIndex(m=>m.k==='copy')+1,0,
+ {k:'share',t:'Dela',c:'blue',i:'<path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>',web:1,need:'share'},
+ {k:'translate',t:'Översätt',c:'teal',i:'<path d="M4 5h9M8.5 3v2M6 5c.5 3 2.5 6 6 8M11 5c-.8 3.5-3 6.5-7 8.5"/><path d="M13 21l4-10 4 10M14.5 17.5h5"/>',web:1},
+ {k:'home',t:'Till hemskärmen',c:'green',i:'<rect x="5" y="2" width="14" height="20" rx="3"/><path d="M12 8v6M9 11h6"/>',web:1,need:'addToHome'},
+ {k:'dls',t:'Nedladdningar',c:'orange',i:'<path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/>',need:'downloads'},
+ {k:'reopen',t:'Öppna stängd flik',c:'purple',i:'<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>'});
+$('more').addEventListener('click',ev=>{const b=ev.target.closest('[data-more]');if(!b||b.disabled)return;const k=b.dataset.more,e=entry();
+ if(k==='share'){$('more').classList.remove('on');HOST.share(e.url,e.title||'')}
+ else if(k==='translate'){$('more').classList.remove('on');const u=translateUrl(e.url);if(u){openUrl(u);toast('Översätter till svenska …')}else toast('Sidan är redan översatt')}
+ else if(k==='home'){$('more').classList.remove('on');HOST.addToHome(tab().id)}
+ else if(k==='dls'){$('more').classList.remove('on');openDls()}
+ else if(k==='reopen'){$('more').classList.remove('on');if(closed.length)reopenClosed(0);else toast('Inga stängda flikar')}},true);
+
+tabs.forEach(t=>{t.space=curSpace});renderSpaces();updWatchDot();engineLabel();
 render();
 window.claude?.use?.('sample').then(s=>{sample=s;if(entry().type==='search'&&!entry().data)render()}).catch(()=>{});
 }
