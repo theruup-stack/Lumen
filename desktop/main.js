@@ -254,6 +254,8 @@ ipcMain.on('lumen', (e, cmd, ...a) => {
 });
 
 app.on('open-url', (e, url) => { e.preventDefault(); openInLumen(url); });
+// Visa Lumen som vanlig Chrome, så att t.ex. "Logga in med Google" fungerar.
+app.userAgentFallback = app.userAgentFallback.replace(/ Electron\/\S+/, '').replace(/ lumen\/\S+/i, '');
 app.whenReady().then(() => {
   loadBlocklist();
   createWindow();

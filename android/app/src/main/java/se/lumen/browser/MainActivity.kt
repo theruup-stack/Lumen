@@ -26,6 +26,7 @@ import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.webkit.ProfileStore
+import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import org.json.JSONObject
@@ -149,7 +150,20 @@ class MainActivity : Activity() {
             mediaPlaybackRequiresUserGesture = true
             mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
             setSupportMultipleWindows(false)
+            // Visa Lumen som en vanlig mobil Chrome, så att t.ex. "Logga in med Google" fungerar.
+            userAgentString = browserUserAgent
         }
+        try {
+            if (WebViewFeature.isFeatureSupported(WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST)) {
+                WebSettingsCompat.setRequestedWithHeaderOriginAllowList(w.settings, emptySet())
+            }
+        } catch (e: Throwable) { }
+    }
+
+    private val browserUserAgent by lazy {
+        WebSettings.getDefaultUserAgent(this)
+            .replace("; wv)", ")")
+            .replace(Regex(" Version/\\d+(\\.\\d+)*"), "")
     }
 
     private fun js(code: String) {
