@@ -339,6 +339,22 @@ html.private .ptag{display:inline-block}
 .ql .qs.anim .qr{animation:rowin .38s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0)*18ms + 140ms)}
 @keyframes rowin{from{opacity:0;transform:translateY(10px)}}
 .ql .rail{right:2px}
+/* renare lista */
+.ql .qh2{padding:16px 10px 8px 18px;gap:2px}
+.ql .qh2 h3{margin:0;font-size:28px;line-height:1.1;font-weight:700;letter-spacing:-.025em}
+.ql .qtog{color:var(--sub);width:40px;height:40px;border-radius:12px}.ql .qtog svg{width:21px;height:21px}
+.ql .qtog.on{color:var(--c-blue);background:color-mix(in srgb,var(--c-blue) 12%,transparent)}
+.ql #qmanage{font-size:15px;padding:0 8px 0 10px}
+.ql .qr::after{display:none}
+.ql .qr{margin:0 10px;padding:0 12px;border-radius:14px;min-height:50px;gap:14px}
+.ql .qs.bmmode{padding-top:4px}
+.ql .qs.bmmode .qg{display:none}
+.ql .qs.bmmode .qr .tx i{display:none}
+.ql .qs.bmmode .qr .ico{width:30px;height:30px;border-radius:9px;font-size:14px;box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.ql .qs.bmmode .qr .tx b{font-size:17px;font-weight:500;letter-spacing:-.005em}
+.ql .qs.bmmode .chg{font-size:0;width:9px;height:9px;padding:0;border-radius:50%;margin-right:4px}
+.ql .qs .qr:hover,.ql .qs .qr:active{background:var(--field)}
+.ql .rail span{color:var(--sub);font-weight:500}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -388,7 +404,7 @@ html.private .ptag{display:inline-block}
  <div class="btns"><button type="button" class="pill ghost" id="impc">Stäng</button><label class="pill" style="display:flex;align-items:center;cursor:pointer">Välj fil<input type="file" id="bmimp" accept=".html,.htm,.zip,text/html,application/zip" hidden></label></div>
 </form></div></div>
 <div class="ql" id="ql" role="dialog" aria-modal="true" aria-label="Bokmärken"><div class="qc" id="qc">
- <div class="qh"><div class="seg" role="group" aria-label="Visa"><button data-qmode="bm" class="on">Bokmärken<span id="qcount" hidden></span></button><button data-qmode="hi">Historik</button></div><span style="flex:1"></span><button class="lnk" id="qmanage">Hantera</button><button class="ib" id="qclose" aria-label="Stäng"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+ <div class="qh qh2"><h3 id="qtitle">Bokmärken</h3><span id="qcount" hidden></span><span style="flex:1"></span><button class="ib qtog on" data-qmode="bm" aria-label="Bokmärken"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button><button class="ib qtog" data-qmode="hi" aria-label="Historik"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button><button class="lnk" id="qmanage">Hantera</button><button class="ib" id="qclose" aria-label="Stäng"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
  <div class="qsrch" id="qsrch" hidden><input id="hq" type="search" placeholder="Sök: ord, ”igår”, ”i tisdags”, ”röd” …" autocomplete="off" aria-label="Sök i historiken"><div class="hv" id="hvw" style="padding:8px 0 0"></div></div>
  <div class="qwrap"><div class="qs" id="qs"></div><div class="rail" id="rail" aria-hidden="true"></div><div class="bub" id="bub"></div></div>
  <div class="qf">Håll inne bokmärkesknappen för att spara sidan · Håll inne en länk för fler val</div>
@@ -570,7 +586,7 @@ function openQl(){closeBm();renderQl();const q=$('ql'),c=$('qc'),qs=$('qs');
  qs.scrollTop=0;qs.classList.remove('anim');void qs.offsetWidth;qs.classList.add('anim');clearTimeout(openQl.t);openQl.t=setTimeout(()=>qs.classList.remove('anim'),1200)}
 function stagger(){$('qs').querySelectorAll('.qr').forEach((r,i)=>{if(i<28)r.style.setProperty('--i',i)})}
 function closeQl(){$('ql').classList.remove('on');$('qm').classList.remove('on')}
-function renderQl(){document.querySelectorAll('[data-qmode]').forEach(b=>b.classList.toggle('on',b.dataset.qmode===qMode));$('qsrch').hidden=qMode!=='hi';$('qmanage').textContent=qMode==='hi'?'Rensa':'Hantera';if(qMode==='hi'){renderHist();return}
+function renderQl(){document.querySelectorAll('[data-qmode]').forEach(b=>b.classList.toggle('on',b.dataset.qmode===qMode));$('qtitle').textContent=qMode==='hi'?'Historik':'Bokmärken';$('qs').classList.toggle('bmmode',qMode!=='hi');$('qsrch').hidden=qMode!=='hi';$('qmanage').textContent=qMode==='hi'?'Rensa':'Hantera';if(qMode==='hi'){renderHist();return}
  const it=[...bmItems()].sort((a,b)=>sortKey(a).localeCompare(sortKey(b),'sv',{sensitivity:'base'}));
  $('qcount').textContent=it.length?it.length:'';
  if(!it.length){$('qs').innerHTML='<div class="qe"><div><b>Inga bokmärken ännu</b>Håll inne bokmärkesknappen för att spara sidan du är på.</div></div>';$('rail').innerHTML='';return}
