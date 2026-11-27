@@ -1,7 +1,7 @@
 // Lumen för Windows, macOS och Linux.
 // Gränssnittet ligger i en vy som täcker hela fönstret; varje flik är en egen
 // webbvy som läggs exakt över gränssnittets innehållsyta.
-const { app, BaseWindow, WebContentsView, ipcMain, shell, nativeTheme, Menu, session } = require('electron');
+const { app, BaseWindow, WebContentsView, ipcMain, shell, nativeTheme, Menu, session, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -60,6 +60,18 @@ const guarded = new WeakSet();
 function guard(ses) {
   if (guarded.has(ses)) return;
   guarded.add(ses);
+  const asked = new Map();
+  ses.setPermissionRequestHandler((wc, permission, cb, details) => {
+    if (permission === 'fullscreen' || permission === 'clipboard-sanitized-write') return cb(true);
+    const names = { media: 'kameran eller mikrofonen', geolocation: 'din plats', notifications: 'skicka notiser' };
+    if (!names[permission]) return cb(false);
+    let host = '';
+    try { host = new URL(details.requestingUrl || wc.getURL()).hostname; } catch (e) {}
+    const key = host + '|' + permission;
+    if (asked.has(key)) return cb(asked.get(key));
+    dialog.showMessageBox(win, { type: 'question', buttons: ['Tillåt', 'Neka'], defaultId: 0, cancelId: 1, message: `${host || 'Sidan'} vill använda ${names[permission]}` })
+      .then((r) => { const ok = r.response === 0; asked.set(key, ok); cb(ok); }).catch(() => cb(false));
+  });
   ses.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (d, cb) => {
     if (d.resourceType === 'mainFrame' || !d.webContentsId || !wcToTab.has(d.webContentsId)) return cb({});
     let host = '';
@@ -210,10 +222,12 @@ function shortcut(e, input) {
   }
 }
 
-function tab(id, priv) {
+let fsTab = null;
+function tab(id, priv, space) {
   if (tabs.has(id)) return tabs.get(id);
   const webPreferences = { contextIsolation: true, sandbox: true };
   if (priv) { webPreferences.partition = privPartition(); privTabs.add(id); }
+  else if (space && space !== 'main') webPreferences.partition = 'persist:space-' + space.replace(/[^\w-]/g, '');
   const v = new WebContentsView({ webPreferences });
   guard(v.webContents.session);
   wcToTab.set(v.webContents.id, id);
@@ -234,6 +248,17 @@ function tab(id, priv) {
     run(`window.lumenEvent&&lumenEvent(${JSON.stringify(d)})`);
   };
   emitters.set(wc.id, emit);
+  wc.on('enter-html-full-screen', () => { fsTab = id; win.setFullScreen(true); setTimeout(() => { const [w, h] = win.getContentSize(); v.setBounds({ x: 0, y: 0, width: w, height: h }); }, 150); });
+  wc.on('leave-html-full-screen', () => { fsTab = null; win.setFullScreen(false); setTimeout(applyLayout, 150); });
+  wc.on('found-in-page', (e, r) => run(`window.lumenFind&&lumenFind(${JSON.stringify({ tab: id, index: r.activeMatchOrdinal || 0, count: r.matches || 0 })})`));
+  wc.on('did-stop-loading', () => setTimeout(() => {
+    if (wc.isDestroyed() || current !== id || !showContent || privTabs.has(id)) return;
+    wc.capturePage().then((img) => {
+      const small = img.resize({ width: 240 });
+      const data = 'data:image/jpeg;base64,' + small.toJPEG(62).toString('base64');
+      run(`window.lumenThumb&&lumenThumb(${JSON.stringify({ tab: id, url: wc.getURL(), data })})`);
+    }).catch(() => {});
+  }, 1500));
   wc.on('did-start-navigation', (d) => { if (d.isMainFrame && !d.isSameDocument) blockedCount.set(wc.id, 0); });
   ['did-start-loading', 'did-stop-loading', 'did-navigate', 'did-navigate-in-page', 'page-title-updated'].forEach((ev) => wc.on(ev, emit));
   wc.setWindowOpenHandler(({ url }) => {
@@ -260,7 +285,7 @@ function tab(id, priv) {
 }
 
 function applyLayout() {
-  for (const v of tabs.values()) v.setBounds(area);
+  for (const [id, v] of tabs) if (id !== fsTab) v.setBounds(area);
   applyVisibility();
 }
 
@@ -268,12 +293,14 @@ function applyVisibility() {
   for (const [id, v] of tabs) v.setVisible(showContent && id === current);
 }
 
+let lastFind = '';
 ipcMain.on('lumen', (e, cmd, ...a) => {
   if (!win || e.sender !== ui.webContents) return;
+  if (cmd === 'find') lastFind = a[1] || '';
   const [id] = a;
   switch (cmd) {
     case 'show': {
-      const v = tab(id, !!a[2]);
+      const v = tab(id, !!a[2], a[3]);
       const url = a[1];
       if (url && v.webContents.getURL() !== url) v.webContents.loadURL(url);
       current = id;
@@ -300,6 +327,27 @@ ipcMain.on('lumen', (e, cmd, ...a) => {
       break;
     }
     case 'adblock': adblock = !!a[0]; break;
+    case 'run': {
+      const v = tabs.get(id);
+      const req = a[2];
+      const reply = (val) => run(`window.lumenResult&&lumenResult(${JSON.stringify(req)},${JSON.stringify(val === undefined ? null : val)})`);
+      if (!v) reply(null); else v.webContents.executeJavaScript(a[1]).then(reply).catch(() => reply(null));
+      break;
+    }
+    case 'fetch': {
+      const [url, req] = a;
+      const reply = (val) => run(`window.lumenResult&&lumenResult(${JSON.stringify(req)},${JSON.stringify(val)})`);
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), 12000);
+      fetch(url, { signal: ctl.signal, redirect: 'follow', headers: { 'User-Agent': app.userAgentFallback, 'Accept-Language': 'sv-SE,sv;q=0.9,en;q=0.8' } })
+        .then(async (r) => { const text = (await r.text()).slice(0, 1500000); reply({ status: r.status, url: r.url, text }); })
+        .catch(() => reply({ status: 0, text: '' }))
+        .finally(() => clearTimeout(t));
+      break;
+    }
+    case 'find': { const v = tabs.get(id); if (v && a[1]) v.webContents.findInPage(a[1]); else if (v) v.webContents.stopFindInPage('clearSelection'); break; }
+    case 'findNext': { const v = tabs.get(id); if (v && lastFind) v.webContents.findInPage(lastFind, { forward: !!a[1], findNext: true }); break; }
+    case 'findClear': { const v = tabs.get(id); if (v) v.webContents.stopFindInPage('clearSelection'); break; }
     case 'checkUpdate': checkUpdate(true); break;
     case 'update': doUpdate(); break;
     case 'back': tabs.get(id)?.webContents.navigationHistory.goBack(); break;

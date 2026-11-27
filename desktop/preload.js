@@ -4,7 +4,12 @@ const send = (cmd, ...args) => ipcRenderer.send('lumen', cmd, ...args);
 contextBridge.exposeInMainWorld('lumenHost', {
   platform: process.platform,
   version: (process.argv.find((a) => a.startsWith('--lumen-version=')) || '').split('=')[1] || '',
-  show: (tab, url, priv) => send('show', String(tab), url || '', !!priv),
+  show: (tab, url, priv, space) => send('show', String(tab), url || '', !!priv, String(space || '')),
+  run: (tab, code, req) => send('run', String(tab), code, String(req)),
+  fetch: (url, req) => send('fetch', url, String(req)),
+  find: (tab, q) => send('find', String(tab), q),
+  findNext: (tab, fwd) => send('findNext', String(tab), !!fwd),
+  findClear: (tab) => send('findClear', String(tab)),
   setAdblock: (on) => send('adblock', !!on),
   checkUpdate: () => send('checkUpdate'),
   update: () => send('update'),
