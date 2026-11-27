@@ -2,7 +2,7 @@ name: Bygg Lumen
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   workflow_dispatch:
 
 permissions:
@@ -77,6 +77,7 @@ jobs:
   release:
     name: Publicera
     needs: [android, desktop]
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     env:
       RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}

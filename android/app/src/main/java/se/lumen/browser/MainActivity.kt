@@ -1,6 +1,17 @@
 package se.lumen.browser
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.app.AlertDialog
+import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.util.Base64
+import android.webkit.GeolocationPermissions
+import android.webkit.PermissionRequest
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import java.io.ByteArrayOutputStream
 import android.app.Activity
 import android.app.DownloadManager
 import android.app.SearchManager
@@ -54,6 +65,7 @@ class MainActivity : Activity() {
     private lateinit var root: FrameLayout
     private lateinit var ui: WebView
     private val tabs = LinkedHashMap<String, WebView>()
+    private val boxes = LinkedHashMap<String, SwipeRefreshLayout>()
     private var current: String? = null
     private var showContent = false
     private var area = IntArray(4) // x, y, bredd, höjd i pixlar
@@ -180,26 +192,34 @@ class MainActivity : Activity() {
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private fun tab(id: String, priv: Boolean = false): WebView = tabs.getOrPut(id) {
+    private fun tab(id: String, priv: Boolean = false, space: String = ""): WebView = tabs.getOrPut(id) {
         val w = WebView(this)
-        if (priv) {
-            privateTabs.add(id)
-            if (privateProfiles) {
-                try {
-                    ProfileStore.getInstance().getOrCreateProfile(PRIVATE_PROFILE)
-                    WebViewCompat.setProfile(w, PRIVATE_PROFILE)
-                } catch (e: Throwable) { }
-            }
+        val profile = when {
+            priv -> PRIVATE_PROFILE
+            space.isNotEmpty() && space != "main" -> "space-$space"
+            else -> null
+        }
+        if (priv) privateTabs.add(id)
+        if (profile != null && privateProfiles) {
+            try {
+                ProfileStore.getInstance().getOrCreateProfile(profile)
+                WebViewCompat.setProfile(w, profile)
+            } catch (e: Throwable) { }
         }
         setup(w)
         if (priv) {
             w.settings.cacheMode = WebSettings.LOAD_NO_CACHE
             w.settings.saveFormData = false
         } else {
-            CookieManager.getInstance().setAcceptThirdPartyCookies(w, true)
+            try { CookieManager.getInstance().setAcceptThirdPartyCookies(w, true) } catch (e: Throwable) { }
         }
         w.setBackgroundColor(Color.WHITE)
-        w.visibility = View.GONE
+        val box = SwipeRefreshLayout(this)
+        box.setColorSchemeColors(Color.parseColor("#2f7bff"), Color.parseColor("#e0218a"), Color.parseColor("#ff9a2e"))
+        box.setOnRefreshListener { w.reload() }
+        box.addView(w, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        box.visibility = View.GONE
+        boxes[id] = box
         w.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val url = request.url.toString()
@@ -219,12 +239,23 @@ class MainActivity : Activity() {
                 blockedCount[id]?.set(0)
                 emit(id)
             }
-            override fun onPageFinished(view: WebView, url: String) = emit(id)
+            override fun onPageFinished(view: WebView, url: String) {
+                box.isRefreshing = false
+                emit(id)
+                ui.postDelayed({ thumbnail(id) }, 1500)
+            }
             override fun doUpdateVisitedHistory(view: WebView, url: String, isReload: Boolean) = emit(id)
         }
         w.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView, newProgress: Int) = emit(id)
             override fun onReceivedTitle(view: WebView, title: String?) = emit(id)
+            override fun onShowCustomView(view: View, callback: CustomViewCallback) = enterFullscreen(view, callback)
+            override fun onHideCustomView() = exitFullscreen()
+            override fun onPermissionRequest(request: PermissionRequest) = askPermission(request)
+            override fun onGeolocationPermissionsShowPrompt(origin: String, callback: GeolocationPermissions.Callback) = askGeo(origin, callback)
+        }
+        w.setFindListener { active, count, done ->
+            if (done) js("window.lumenFind&&lumenFind(${JSONObject().put("tab", id).put("index", if (count > 0) active + 1 else 0).put("count", count)})")
         }
         w.setDownloadListener { url, userAgent, contentDisposition, mimeType, _ ->
             try {
@@ -241,7 +272,7 @@ class MainActivity : Activity() {
                 openExternal(url)
             }
         }
-        root.addView(w, params())
+        root.addView(box, params())
         w
     }
 
@@ -252,13 +283,13 @@ class MainActivity : Activity() {
     }
 
     private fun applyLayout() {
-        for (w in tabs.values) w.layoutParams = params()
+        for (b in boxes.values) b.layoutParams = params()
         applyVisibility()
     }
 
     private fun applyVisibility() {
-        for ((id, w) in tabs) {
-            w.visibility = if (showContent && id == current) View.VISIBLE else View.GONE
+        for ((id, b) in boxes) {
+            b.visibility = if (showContent && id == current && customView == null) View.VISIBLE else View.GONE
         }
     }
 
@@ -275,6 +306,123 @@ class MainActivity : Activity() {
         js("window.lumenEvent&&lumenEvent($o)")
     }
 
+    /** Liten bild av sidan till den visuella historiken. */
+    private fun thumbnail(id: String) {
+        val w = tabs[id] ?: return
+        if (id != current || !showContent || w.width <= 0 || w.height <= 0 || privateTabs.contains(id)) return
+        try {
+            val scale = 240f / w.width
+            val bmp = Bitmap.createBitmap(240, (w.height * scale).toInt().coerceIn(1, 400), Bitmap.Config.RGB_565)
+            val c = Canvas(bmp)
+            c.scale(scale, scale)
+            c.translate(-w.scrollX.toFloat(), -w.scrollY.toFloat())
+            w.draw(c)
+            val out = ByteArrayOutputStream()
+            bmp.compress(Bitmap.CompressFormat.JPEG, 62, out)
+            bmp.recycle()
+            val data = "data:image/jpeg;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
+            js("window.lumenThumb&&lumenThumb(${JSONObject().put("tab", id).put("url", w.url ?: "").put("data", data)})")
+        } catch (e: Throwable) { }
+    }
+
+    /* ---------- Video i helskärm ---------- */
+    private var customView: View? = null
+    private var customCallback: WebChromeClient.CustomViewCallback? = null
+
+    private fun enterFullscreen(view: View, callback: WebChromeClient.CustomViewCallback) {
+        if (customView != null) { callback.onCustomViewHidden(); return }
+        customView = view
+        customCallback = callback
+        view.setBackgroundColor(Color.BLACK)
+        root.addView(view, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        applyVisibility()
+        @Suppress("DEPRECATION")
+        window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_LAYOUT_STABLE)
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+    }
+
+    private fun exitFullscreen() {
+        val v = customView ?: return
+        root.removeView(v)
+        customView = null
+        customCallback?.onCustomViewHidden()
+        customCallback = null
+        @Suppress("DEPRECATION")
+        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        applyVisibility()
+    }
+
+    /* ---------- Kamera, mikrofon och plats ---------- */
+    private var pendingWebPermission: PermissionRequest? = null
+    private var pendingGeo: Pair<String, GeolocationPermissions.Callback>? = null
+    private val allowedOrigins = HashMap<String, Boolean>()
+
+    private fun askPermission(request: PermissionRequest) = runOnUiThread {
+        val wanted = request.resources.filter {
+            it == PermissionRequest.RESOURCE_VIDEO_CAPTURE || it == PermissionRequest.RESOURCE_AUDIO_CAPTURE ||
+                it == PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID
+        }
+        if (wanted.isEmpty()) { request.deny(); return@runOnUiThread }
+        val host = request.origin.host ?: "Sidan"
+        val what = buildList {
+            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE in wanted) add("kameran")
+            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE in wanted) add("mikrofonen")
+            if (PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID in wanted) add("skyddad video")
+        }.joinToString(" och ")
+        val grant = {
+            val perms = ArrayList<String>()
+            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE in wanted && checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) perms.add(Manifest.permission.CAMERA)
+            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE in wanted && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) perms.add(Manifest.permission.RECORD_AUDIO)
+            if (perms.isEmpty()) request.grant(wanted.toTypedArray())
+            else { pendingWebPermission = request; requestPermissions(perms.toTypedArray(), REQ_MEDIA) }
+        }
+        val key = "$host|$what"
+        when (allowedOrigins[key]) {
+            true -> grant()
+            false -> request.deny()
+            null -> AlertDialog.Builder(this)
+                .setTitle("$host vill använda $what")
+                .setPositiveButton("Tillåt") { _, _ -> allowedOrigins[key] = true; grant() }
+                .setNegativeButton("Neka") { _, _ -> allowedOrigins[key] = false; request.deny() }
+                .setOnCancelListener { request.deny() }
+                .show()
+        }
+    }
+
+    private fun askGeo(origin: String, callback: GeolocationPermissions.Callback) = runOnUiThread {
+        val host = Uri.parse(origin).host ?: origin
+        val go = {
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) callback.invoke(origin, true, false)
+            else { pendingGeo = origin to callback; requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), REQ_GEO) }
+        }
+        when (allowedOrigins["$host|plats"]) {
+            true -> go()
+            false -> callback.invoke(origin, false, false)
+            null -> AlertDialog.Builder(this)
+                .setTitle("$host vill veta var du är")
+                .setPositiveButton("Tillåt") { _, _ -> allowedOrigins["$host|plats"] = true; go() }
+                .setNegativeButton("Neka") { _, _ -> allowedOrigins["$host|plats"] = false; callback.invoke(origin, false, false) }
+                .setOnCancelListener { callback.invoke(origin, false, false) }
+                .show()
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        val ok = grantResults.isNotEmpty() && grantResults.any { it == PackageManager.PERMISSION_GRANTED }
+        if (requestCode == REQ_MEDIA) {
+            pendingWebPermission?.let { r ->
+                if (ok) r.grant(r.resources) else r.deny()
+            }
+            pendingWebPermission = null
+        } else if (requestCode == REQ_GEO) {
+            pendingGeo?.let { (o, cb) -> cb.invoke(o, ok, false) }
+            pendingGeo = null
+        }
+    }
+
     private fun openExternal(url: String) {
         try {
             val intent = if (url.startsWith("intent:")) Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
@@ -285,12 +433,19 @@ class MainActivity : Activity() {
         }
     }
 
+    private val desktopUserAgent by lazy {
+        val ver = Regex("Chrome/([\\d.]+)").find(browserUserAgent)?.groupValues?.get(1) ?: "124.0.0.0"
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$ver Safari/537.36"
+    }
+
+    private fun result(req: String, json: String) = js("window.lumenResult&&lumenResult(${JSONObject.quote(req)},$json)")
+
     inner class Bridge {
         private val density get() = resources.displayMetrics.density
 
         @JavascriptInterface
-        fun show(id: String, url: String, priv: Boolean) = runOnUiThread {
-            val w = tab(id, priv)
+        fun show(id: String, url: String, priv: Boolean, space: String) = runOnUiThread {
+            val w = tab(id, priv, space)
             if (url.isNotEmpty() && w.url != url) w.loadUrl(url)
             current = id
             applyVisibility()
@@ -299,8 +454,8 @@ class MainActivity : Activity() {
 
         @JavascriptInterface
         fun close(id: String) = runOnUiThread {
+            boxes.remove(id)?.let { root.removeView(it) }
             tabs.remove(id)?.let {
-                root.removeView(it)
                 if (privateTabs.contains(id)) {
                     it.clearCache(true)
                     it.clearFormData()
@@ -349,6 +504,75 @@ class MainActivity : Activity() {
         fun visible(v: Boolean) = runOnUiThread {
             showContent = v
             applyVisibility()
+        }
+
+        /** Kör ett skript i fliken och skicka tillbaka resultatet. */
+        @JavascriptInterface
+        fun run(id: String, code: String, req: String) = runOnUiThread {
+            val w = tabs[id]
+            if (w == null) result(req, "null") else w.evaluateJavascript(code) { r -> result(req, r ?: "null") }
+        }
+
+        /** Hämta en sida i bakgrunden (för bevakning, förslag och städning). */
+        @JavascriptInterface
+        fun fetch(url: String, req: String) {
+            thread(name = "lumen-fetch") {
+                val o = JSONObject()
+                try {
+                    var u = URL(url)
+                    fun open(x: URL): HttpURLConnection = (x.openConnection() as HttpURLConnection).apply {
+                        instanceFollowRedirects = false
+                        connectTimeout = 9000
+                        readTimeout = 12000
+                        setRequestProperty("User-Agent", browserUserAgent)
+                        setRequestProperty("Accept-Language", "sv-SE,sv;q=0.9,en;q=0.8")
+                    }
+                    var c = open(u)
+                    var hops = 0
+                    while (c.responseCode in 300..399 && hops < 5) {
+                        val loc = c.getHeaderField("Location") ?: break
+                        c.disconnect()
+                        u = URL(u, loc)
+                        hops++
+                        c = open(u)
+                    }
+                    o.put("status", c.responseCode)
+                    o.put("url", u.toString())
+                    val stream = if (c.responseCode < 400) c.inputStream else c.errorStream
+                    val bytes = stream?.use { s ->
+                        val buf = java.io.ByteArrayOutputStream()
+                        val b = ByteArray(32 * 1024)
+                        var total = 0
+                        while (total < 1_500_000) { val r = s.read(b); if (r < 0) break; buf.write(b, 0, r); total += r }
+                        buf.toByteArray()
+                    } ?: ByteArray(0)
+                    o.put("text", String(bytes, Charsets.UTF_8))
+                    c.disconnect()
+                } catch (e: Exception) {
+                    o.put("status", 0)
+                    o.put("text", "")
+                }
+                result(req, o.toString())
+            }
+        }
+
+        @JavascriptInterface
+        fun find(id: String, q: String) = runOnUiThread { tabs[id]?.findAllAsync(q) }
+
+        @JavascriptInterface
+        fun findNext(id: String, forward: Boolean) = runOnUiThread { tabs[id]?.findNext(forward) }
+
+        @JavascriptInterface
+        fun findClear(id: String) = runOnUiThread { tabs[id]?.clearMatches() }
+
+        @JavascriptInterface
+        fun setDesktop(id: String, on: Boolean) = runOnUiThread {
+            tabs[id]?.let {
+                it.settings.userAgentString = if (on) desktopUserAgent else browserUserAgent
+                it.settings.useWideViewPort = true
+                it.settings.loadWithOverviewMode = true
+                it.reload()
+            }
         }
     }
 
@@ -509,6 +733,7 @@ class MainActivity : Activity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
+        if (customView != null) { exitFullscreen(); return }
         ui.evaluateJavascript("window.lumenBack?lumenBack():false") { result ->
             if (result != "true") moveTaskToBack(true)
         }
@@ -528,6 +753,8 @@ class MainActivity : Activity() {
 
     companion object {
         private const val PICK_FILE = 42
+        private const val REQ_MEDIA = 43
+        private const val REQ_GEO = 44
         private const val PRIVATE_PROFILE = "lumen-private"
         private const val RELEASES_API = "https://api.github.com/repos/theruup-stack/Lumen-releases/releases/latest"
     }
